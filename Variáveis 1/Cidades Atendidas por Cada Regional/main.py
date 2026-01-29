@@ -12,12 +12,17 @@ from selenium.common.exceptions import ElementClickInterceptedException, NoSuchE
 
 # ================= CONFIGURAÇÕES =================
 
-CIDADE = "Areado"  # Nome do município (altere conforme necessário)
+CIDADE = "Campo do Meio"  # Nome do município (altere conforme necessário)
 REGIONAL_SAUDE = "Alfenas"  # Regional de Saúde
 UF = "MG"
 
-ANO_INICIAL = 1979
-ANO_FINAL = 2024
+PERIODO = [
+    1980, 1985, 1986, 1988,
+    1996, 1997, 1999,
+    2004, 2008, 2009, 2010,
+    2016, 2017, 2018,
+    2020, 2021, 2022, 2024
+]
 
 DOWNLOADS_PATH = "/home/anna/Downloads"
 BASE_PROJECT_PATH = "/home/anna/Documentos/PFC I/Variáveis 1/Cidades Atendidas por Cada Regional"
@@ -231,6 +236,8 @@ def executar():
     limpar_tela()
     print("\033[1;36m" + "=" * 80)
     print(f"CIDADE: {CIDADE}-{UF} | REGIONAL: {REGIONAL_SAUDE}".center(80))
+    print(f"ANOS A EXTRAIR: {PERIODO}".center(80))
+    print(f"TOTAL DE ANOS: {len(PERIODO)}".center(80))
     print("=" * 80 + "\033[0m")
 
     # ===== APLICANDO FILTROS =====
@@ -239,14 +246,20 @@ def executar():
         return
     
     input("\n[!] Verifique os filtros e pressione ENTER para iniciar os downloads\n")
+    
+    # Controle de downloads bem-sucedidos
+    anos_baixados = []
+    anos_sem_dados = []
 
     # ===== LOOP DE ANOS =====
 
-    ano = ANO_INICIAL
+    indice_ano = 0
     tentativas_erro = 0
     MAX_TENTATIVAS = 3
     
-    while ano <= ANO_FINAL:
+    while indice_ano < len(PERIODO):
+        ano = PERIODO[indice_ano]
+        
         try:
             # Verifica se o driver está ativo
             if not driver_esta_ativo(driver):
@@ -326,7 +339,8 @@ def executar():
                 # Verificar se retornou sem resultado (SEGUNDA TENTATIVA)
                 if verificar_sem_resultado(driver):
                     log_status(ano, "⊘ Sem dados disponíveis (confirmado após 2ª tentativa)", "AVISO")
-                    ano += 1
+                    anos_sem_dados.append(ano)
+                    indice_ano += 1
                     tentativas_erro = 0
                     continue
 
@@ -350,7 +364,8 @@ def executar():
                 novo_nome = f"{ano}-{CIDADE}-{UF}.csv"
                 shutil.move(arquivo_encontrado, os.path.join(PASTA_DESTINO_CIDADE, novo_nome))
                 log_status(ano, f"✓ Arquivo salvo: {novo_nome}", "OK")
-                ano += 1
+                anos_baixados.append(ano)
+                indice_ano += 1
                 tentativas_erro = 0  # Reseta contador de erros
             else:
                 log_status(ano, "Download não completado. Tentando novamente...", "AVISO")
@@ -419,10 +434,33 @@ def executar():
     except:
         pass
     
+    # ===== RELATÓRIO FINAL =====
     print("\n\033[1;32m" + "=" * 80)
-    print("[✓] EXTRAÇÃO FINALIZADA COM SUCESSO!".center(80))
+    print("[✓] EXTRAÇÃO FINALIZADA!".center(80))
     print("=" * 80 + "\033[0m")
-    print(f"\nArquivos salvos em: {PASTA_DESTINO_CIDADE}\n")
+    
+    print(f"\n📊 ESTATÍSTICAS:")
+    print(f"   • Total de anos no período: {len(PERIODO)}")
+    print(f"   • CSVs baixados com sucesso: {len(anos_baixados)}")
+    print(f"   • Anos sem dados disponíveis: {len(anos_sem_dados)}")
+    
+    # Calcular anos que faltaram (que não foram baixados nem estão sem dados)
+    anos_faltantes = [ano for ano in PERIODO if ano not in anos_baixados and ano not in anos_sem_dados]
+    
+    if anos_baixados:
+        print(f"\n✅ Anos baixados: {sorted(anos_baixados)}")
+    
+    if anos_sem_dados:
+        print(f"\n⊘ Anos sem dados: {sorted(anos_sem_dados)}")
+    
+    if anos_faltantes:
+        print(f"\n❌ Anos que FALTARAM (não concluídos): {sorted(anos_faltantes)}")
+        print(f"   ⚠ Execute novamente com PERIODO = {anos_faltantes} para tentar baixá-los")
+    else:
+        print(f"\n✓ Todos os anos foram processados!")
+    
+    print(f"\n📁 Arquivos salvos em: {PASTA_DESTINO_CIDADE}\n")
+    print("=" * 80 + "\n")
 
 # ================= MAIN =================
 
