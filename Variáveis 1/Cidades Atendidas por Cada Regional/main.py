@@ -10,19 +10,20 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import ElementClickInterceptedException, NoSuchElementException
 
-# ================= CONFIGURAÇÕES =================
-
-CIDADE = "Campo do Meio"  # Nome do município (altere conforme necessário)
-REGIONAL_SAUDE = "Alfenas"  # Regional de Saúde
+CIDADE = "Vespasiano"  # Nome do município 
+REGIONAL_SAUDE = "Belo Horizonte"  # Regional de Saúde
 UF = "MG"
 
+
+
 PERIODO = [
-    1980, 1985, 1986, 1988,
-    1996, 1997, 1999,
-    2004, 2008, 2009, 2010,
-    2016, 2017, 2018,
-    2020, 2021, 2022, 2024
+    1979, 1981, 1982, 1983, 1984, 1985, 1987,
+    1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
+    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+    2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018,
+    2019, 2020, 2021, 2022, 2023, 2024
 ]
+
 
 DOWNLOADS_PATH = "/home/anna/Downloads"
 BASE_PROJECT_PATH = "/home/anna/Documentos/PFC I/Variáveis 1/Cidades Atendidas por Cada Regional"
@@ -32,7 +33,6 @@ os.makedirs(PASTA_DESTINO_CIDADE, exist_ok=True)
 
 URL = "https://www.inca.gov.br/MortalidadeWeb/pages/Modelo10/consultar.xhtml"
 
-# ================= FUNÇÕES =================
 
 def limpar_tela():
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -126,13 +126,13 @@ def aplicar_filtros(driver, wait):
         log(f"Selecionando Regional de Saúde: {REGIONAL_SAUDE}")
         Select(driver.find_element(By.ID, "formModeloTabulador:regionalSaude")) \
             .select_by_visible_text(REGIONAL_SAUDE)
-        time.sleep(4)  # Aguarda carregar a lista de municípios
+        time.sleep(4)  
 
         log(f"Selecionando município: {CIDADE}")
         # Aguarda a lista de municípios carregar
         wait.until(EC.presence_of_element_located((By.ID, "formModeloTabulador:localidades")))
         
-        # Seleciona o município na lista (procura por texto que contenha o nome da cidade)
+        # Seleciona o município na lista 
         select_municipio = Select(driver.find_element(By.ID, "formModeloTabulador:localidades"))
         
         # Encontra a opção que contém o nome da cidade
@@ -188,7 +188,6 @@ def aplicar_filtros(driver, wait):
         return False
 
 def verificar_sem_resultado(driver):
-    """Verifica se a consulta retornou sem resultado"""
     try:
         # Procura pelo elemento que contém a mensagem "Esta consulta retornou sem resultado"
         elemento = driver.find_element(By.ID, "panelResultado")
@@ -206,13 +205,11 @@ def clicar_ok_com_retry(driver, wait, max_tentativas=3):
     for tentativa in range(max_tentativas):
         try:
             btn_ok = wait.until(EC.element_to_be_clickable((By.ID, "formModeloTabulador:j_idt202")))
-            
-            # Tenta clicar normalmente
+
             try:
                 btn_ok.click()
                 return True
             except ElementClickInterceptedException:
-                # Se houver overlay, tenta com JavaScript
                 log(f"Click intercepted, tentando com JavaScript (tentativa {tentativa + 1}/{max_tentativas})")
                 driver.execute_script("arguments[0].click();", btn_ok)
                 return True
@@ -225,7 +222,6 @@ def clicar_ok_com_retry(driver, wait, max_tentativas=3):
     
     return False
 
-# ================= EXECUÇÃO =================
 
 def executar():
     driver = iniciar_driver()
@@ -240,7 +236,6 @@ def executar():
     print(f"TOTAL DE ANOS: {len(PERIODO)}".center(80))
     print("=" * 80 + "\033[0m")
 
-    # ===== APLICANDO FILTROS =====
     if not aplicar_filtros(driver, wait):
         driver.quit()
         return
@@ -251,7 +246,6 @@ def executar():
     anos_baixados = []
     anos_sem_dados = []
 
-    # ===== LOOP DE ANOS =====
 
     indice_ano = 0
     tentativas_erro = 0
@@ -261,7 +255,7 @@ def executar():
         ano = PERIODO[indice_ano]
         
         try:
-            # Verifica se o driver está ativo
+
             if not driver_esta_ativo(driver):
                 log_status(ano, "Driver inativo detectado. Reiniciando...", "ERRO")
                 try:
@@ -290,17 +284,17 @@ def executar():
             Select(driver.find_element(By.ID, "formModeloTabulador:anoFim")).select_by_value(str(ano))
             time.sleep(1)
 
-            # 2. Clicar no OK com retry
+            # 2. Clicar no OK
             log_status(ano, "Processando consulta...", "INFO")
             if not clicar_ok_com_retry(driver, wait):
                 raise Exception("Falha ao clicar no botão OK após múltiplas tentativas")
             
-            time.sleep(20)  # Aguarda processamento
+            time.sleep(20)
 
             # 3. Verificar se apareceu erro de campos obrigatórios
             if verificar_erro_campos_obrigatorios(driver):
                 log_status(ano, "⚠ Erro de campos obrigatórios detectado! Reconfigurando...", "ERRO")
-                driver.refresh()  # Recarrega a página
+                driver.refresh() 
                 time.sleep(3)
                 
                 if not aplicar_filtros(driver, wait):
@@ -311,16 +305,15 @@ def executar():
                 tentativas_erro = 0
                 continue  # Tenta o mesmo ano novamente
 
-            # 4. Verificar se retornou sem resultado (PRIMEIRA TENTATIVA)
+            # 4. Verificar se retornou sem resultado 
             if verificar_sem_resultado(driver):
                 log_status(ano, "⊘ Sem dados (1ª verificação). Tentando novamente...", "AVISO")
-                
-                # Clica no OK novamente
+ 
                 log_status(ano, "Processando consulta novamente...", "INFO")
                 if not clicar_ok_com_retry(driver, wait):
                     raise Exception("\nFalha ao clicar no botão OK na segunda tentativa")
                 
-                time.sleep(15)  # Aguarda processamento
+                time.sleep(15) 
                 
                 # Verifica erro de campos obrigatórios novamente
                 if verificar_erro_campos_obrigatorios(driver):
@@ -336,7 +329,7 @@ def executar():
                     tentativas_erro = 0
                     continue
                 
-                # Verificar se retornou sem resultado (SEGUNDA TENTATIVA)
+                # Verificar se retornou sem resultado novamente
                 if verificar_sem_resultado(driver):
                     log_status(ano, "⊘ Sem dados disponíveis (confirmado após 2ª tentativa)", "AVISO")
                     anos_sem_dados.append(ano)
@@ -366,7 +359,7 @@ def executar():
                 log_status(ano, f"✓ Arquivo salvo: {novo_nome}", "OK")
                 anos_baixados.append(ano)
                 indice_ano += 1
-                tentativas_erro = 0  # Reseta contador de erros
+                tentativas_erro = 0  
             else:
                 log_status(ano, "Download não completado. Tentando novamente...", "AVISO")
                 time.sleep(3)
@@ -390,7 +383,7 @@ def executar():
             log_status(ano, f"Erro: {erro_msg[:80]}", "ERRO")
             tentativas_erro += 1
             
-            # Verifica se é erro de conexão/driver
+            # Verifica se é erro de conexão
             if any(palavra in erro_msg for palavra in ["Connection refused", "HTTPConnectionPool", "invalid session", "Session", "chrome not reachable"]):
                 log_status(ano, "Driver/conexão perdida. Reiniciando completamente...", "ERRO")
                 
@@ -412,7 +405,7 @@ def executar():
                 tentativas_erro = 0
                 continue
             
-            # Se teve muitas tentativas de erro, reconfigura automaticamente
+            # Se teve muitas tentativas de erro, reconfigurar filtros
             if tentativas_erro >= MAX_TENTATIVAS:
                 log_status(ano, "Muitas falhas. Reconfigurando filtros automaticamente...", "ERRO")
                 driver.refresh()
@@ -425,7 +418,6 @@ def executar():
                 
                 tentativas_erro = 0
             else:
-                # Apenas espera e tenta novamente
                 log_status(ano, f"Tentativa {tentativas_erro}/{MAX_TENTATIVAS}. Aguardando...", "AVISO")
                 time.sleep(5)
 
@@ -434,7 +426,6 @@ def executar():
     except:
         pass
     
-    # ===== RELATÓRIO FINAL =====
     print("\n\033[1;32m" + "=" * 80)
     print("[✓] EXTRAÇÃO FINALIZADA!".center(80))
     print("=" * 80 + "\033[0m")
@@ -444,25 +435,24 @@ def executar():
     print(f"   • CSVs baixados com sucesso: {len(anos_baixados)}")
     print(f"   • Anos sem dados disponíveis: {len(anos_sem_dados)}")
     
-    # Calcular anos que faltaram (que não foram baixados nem estão sem dados)
+    # Calcular anos que faltaram 
     anos_faltantes = [ano for ano in PERIODO if ano not in anos_baixados and ano not in anos_sem_dados]
     
     if anos_baixados:
-        print(f"\n✅ Anos baixados: {sorted(anos_baixados)}")
+        print(f"\nAnos baixados: {sorted(anos_baixados)}")
     
     if anos_sem_dados:
-        print(f"\n⊘ Anos sem dados: {sorted(anos_sem_dados)}")
+        print(f"\n -> Anos sem dados: {sorted(anos_sem_dados)}")
     
     if anos_faltantes:
-        print(f"\n❌ Anos que FALTARAM (não concluídos): {sorted(anos_faltantes)}")
+        print(f"\nAnos que FALTARAM (não concluídos): {sorted(anos_faltantes)}")
         print(f"   ⚠ Execute novamente com PERIODO = {anos_faltantes} para tentar baixá-los")
     else:
         print(f"\n✓ Todos os anos foram processados!")
     
-    print(f"\n📁 Arquivos salvos em: {PASTA_DESTINO_CIDADE}\n")
+    print(f"\nArquivos salvos em: {PASTA_DESTINO_CIDADE}\n")
     print("=" * 80 + "\n")
 
-# ================= MAIN =================
 
 if __name__ == "__main__":
     executar()
