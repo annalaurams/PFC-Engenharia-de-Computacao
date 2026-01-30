@@ -1,6 +1,6 @@
 import os
 
-BASE_PATH = "/home/anna/Documentos/PFC I/Variáveis 1/Cidades"
+BASE_PATH = "/home/anna/Documentos/PFC I/Variáveis 1/Regionais de Saúde (29)/Regionais - Cidades"
 ANO_INICIAL = 1979
 ANO_FINAL = 2024
 
