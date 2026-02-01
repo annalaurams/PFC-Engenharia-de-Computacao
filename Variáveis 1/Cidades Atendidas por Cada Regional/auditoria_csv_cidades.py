@@ -1,79 +1,75 @@
 import os
+import unicodedata
 
-BASE_PATH = "/home/anna/Documentos/PFC I/Variáveis 1/Cidades Atendidas por Cada Regional/Belo Horizonte"
+BASE_PATH = "/home/anna/Documentos/PFC I/Variáveis 1/Cidades Atendidas por Cada Regional/Coronel Fabriciano"
 
 CIDADES_ESPERADAS = [
-    "Belo Horizonte",
-    "Belo Vale",
-    "Betim",
-    "Bonfim",
-    "Brumadinho",
-    "Caeté",
-    "Conceição do Mato Dentro",
-    "Confins",
-    "Contagem",
-    "Crucilândia",
-    "Esmeraldas",
-    "Florestal",
-    "Ibirité",
-    "Igarapé",
-    "Itabirito",
-    "Jaboticatubas",
-    "Nova União",
-    "Juatuba",
-    "Lagoa Santa",
-    "Mariana",
-    "Mário Campos",
-    "Mateus Leme",
-    "Matozinhos",
-    "Moeda",
-    "Nova Lima",
-    "Ouro Preto",
-    "Pedro Leopoldo",
-    "Piedade dos Gerais",
-    "Raposos",
-    "Ribeirão das Neves",
-    "Rio Acima",
-    "Rio Manso",
-    "Sabará",
-    "Santa Luzia",
-    "Santana do Riacho",
-    "São Joaquim de Bicas",
-    "São José da Lapa",
-    "Sarzedo",
-    "Taquaraçu de Minas",
-    "Vespasiano",
+    "Açucena-MG",
+    "Antônio Dias-MG",
+    "Belo Oriente-MG",
+    "Bom Jesus do Galho-MG",
+    "Braúnas-MG",
+    "Bugre-MG",
+    "Caratinga-MG",
+    "Coronel Fabriciano-MG",
+    "Córrego Novo-MG",
+    "Dionísio-MG",
+    "Dom Cavati-MG",
+    "Entre Folhas-MG",
+    "Iapu-MG",
+    "Imbé de Minas-MG",
+    "Inhapim-MG",
+    "Ipaba-MG",
+    "Ipatinga-MG",
+    "Jaguaraçu-MG",
+    "Joanésia-MG",
+    "Marliéria-MG",
+    "Mesquita-MG",
+    "Naque-MG",
+    "Periquito-MG",
+    "Piedade de Caratinga-MG",
+    "Pingo-d'Água-MG",
+    "Santa Bárbara do Leste-MG",
+    "Santana do Paraíso-MG",
+    "Santa Rita de Minas-MG",
+    "São Domingos das Dores-MG",
+    "São João do Oriente-MG",
+    "São Sebastião do Anta-MG",
+    "Timóteo-MG",
+    "Ubaporanga-MG",
+    "Vargem Alegre-MG",
+    "Vermelho Novo-MG"
 ]
 
+def normalizar_nome(nome):
+    nome = nome.replace("-MG", "")
+    nome = unicodedata.normalize("NFKD", nome)
+    nome = "".join(c for c in nome if not unicodedata.combining(c))
+    return nome.lower().strip()
 
 def verificar_pastas_faltantes():
     print("\n" + "=" * 80)
-    print("VERIFICAÇÃO DE PASTAS - Regional de Alfenas".center(80))
+    print("VERIFICAÇÃO DE PASTAS - Regional de Coronel Fabriciano".center(80))
     print("=" * 80 + "\n")
 
     if not os.path.isdir(BASE_PATH):
         print(f"ERRO: O caminho '{BASE_PATH}' não existe!")
         return
 
-    # Listar todas as pastas existentes
     pastas_existentes = [
         item for item in os.listdir(BASE_PATH)
         if os.path.isdir(os.path.join(BASE_PATH, item))
     ]
 
-    # Normalizar nomes para comparação (remover sufixo -MG se houver)
-    pastas_normalizadas = set()
-    for pasta in pastas_existentes:
-        nome_limpo = pasta.replace("-MG", "").strip()
-        pastas_normalizadas.add(nome_limpo)
+    pastas_normalizadas = {
+        normalizar_nome(pasta) for pasta in pastas_existentes
+    }
 
-    # Verificar quais cidades estão faltando
     cidades_faltantes = []
     for cidade in CIDADES_ESPERADAS:
-        if cidade not in pastas_normalizadas:
+        if normalizar_nome(cidade) not in pastas_normalizadas:
             cidades_faltantes.append(cidade)
 
-    # Exibir resultados
     print(f"Total de cidades esperadas: {len(CIDADES_ESPERADAS)}")
     print(f"Total de pastas encontradas: {len(pastas_existentes)}")
     print(f"Total de cidades faltantes: {len(cidades_faltantes)}\n")
@@ -84,7 +80,6 @@ def verificar_pastas_faltantes():
         print("-" * 80)
         for cidade in sorted(cidades_faltantes):
             print(f"   ✗ {cidade}")
-        print()
     else:
         print("✓ Todas as cidades esperadas possuem pasta correspondente!")
 

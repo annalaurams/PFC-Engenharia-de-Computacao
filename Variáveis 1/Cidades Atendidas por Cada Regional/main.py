@@ -10,23 +10,37 @@ from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 from selenium.common.exceptions import ElementClickInterceptedException, NoSuchElementException
 
-CIDADE = "Vespasiano"  # Nome do município 
-REGIONAL_SAUDE = "Belo Horizonte"  # Regional de Saúde
+CIDADE = "Dom Cavati"  # Nome do município 
+REGIONAL_SAUDE = "Coronel Fabriciano"  # Regional de Saúde
 UF = "MG"
 
-
-
 PERIODO = [
-    1979, 1981, 1982, 1983, 1984, 1985, 1987,
-    1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
-    1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
-    2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018,
-    2019, 2020, 2021, 2022, 2023, 2024
+    1979,
+    1985,
+    1989,
+    2006,
+    2009,
+    2014,
+    2015,
+    2020,
+    2021,
+    2022,
+    2023
 ]
 
 
+
+# PERIODO = [
+#     1979, 1980, 1981, 1982, 1983, 1984, 1985, 1986, 1987, 1988,
+#     1989, 1990, 1991, 1992, 1993, 1994, 1995, 1996, 1997, 1998,
+#     1999, 2000, 2001, 2002, 2003, 2004, 2005, 2006, 2007, 2008,
+#     2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018,
+#     2019, 2020, 2021, 2022, 2023, 2024
+# ]
+
+
 DOWNLOADS_PATH = "/home/anna/Downloads"
-BASE_PROJECT_PATH = "/home/anna/Documentos/PFC I/Variáveis 1/Cidades Atendidas por Cada Regional"
+BASE_PROJECT_PATH = "/home/anna/Documentos/PFC I/Variáveis 1/Cidades Atendidas por Cada Regional/A"
 PASTA_DESTINO_CIDADE = os.path.join(BASE_PROJECT_PATH, f"{CIDADE}-{UF}")
 
 os.makedirs(PASTA_DESTINO_CIDADE, exist_ok=True)
