@@ -1,7 +1,7 @@
 import os
 import unicodedata
 
-BASE_PATH = "/home/anna/Documentos/PFC I/Variáveis 1/Cidades Atendidas por Cada Regional/Varginha"
+BASE_PATH = "/home/anna/tcc/variaveis/Variáveis 1/Cidades Atendidas por Cada Regional/Varginha"
 
 CIDADES_ESPERADAS = [
     "Aiuruoca-MG",

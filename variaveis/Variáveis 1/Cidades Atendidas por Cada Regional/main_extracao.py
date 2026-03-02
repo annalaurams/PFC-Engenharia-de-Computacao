@@ -26,7 +26,7 @@ PERIODO = [
 ]
 
 DOWNLOADS_PATH = "/home/anna/Downloads"
-BASE_PROJECT_PATH = "/home/anna/Documentos/PFC I/Variáveis 1/Cidades Atendidas por Cada Regional/Unaí"
+BASE_PROJECT_PATH = "/home/anna/tcc/variaveis/Variáveis 1/Cidades Atendidas por Cada Regional/Unaí"
 PASTA_DESTINO_CIDADE = os.path.join(BASE_PROJECT_PATH, f"{CIDADE}-{UF}")
 os.makedirs(PASTA_DESTINO_CIDADE, exist_ok=True)
 
