@@ -46,8 +46,8 @@ def normalizar_csv(arquivo_entrada, arquivo_saida):
     print(f"Arquivo normalizado gerado: {arquivo_saida}")
 
 def main():
-    arquivo_entrada = "/home/anna/Documentos/PFC I/Variáveis 1/Saídas/cidades_por_regional.csv"
-    arquivo_saida = "/home/anna/Documentos/PFC I/Variáveis 1/Saídas/cidades_por_regional_normalizado.csv"
+    arquivo_entrada = "/home/anna/tcc/variaveis/Variáveis 1/Saídas/cidades_por_regional.csv"
+    arquivo_saida = "/home/anna/tcc/variaveis/Variáveis 1/Saídas/cidades_por_regional_normalizado.csv"
     
     print("=" * 80)
     print("Normalizando arquivo CSV")

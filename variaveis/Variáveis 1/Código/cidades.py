@@ -34,12 +34,12 @@ def gerar_arquivo_saida(dados, arquivo_saida):
     print(f"Total de registros: {len(dados)}")
 
 def main():
-    caminho_base = "/home/anna/Documentos/PFC I/Variáveis 1/Cidades Atendidas por Cada Regional"
+    caminho_base = "/home/anna/tcc/variaveis/Variáveis 1/Cidades Atendidas por Cada Regional"
     
-    pasta_saidas = Path("/home/anna/Documentos/PFC I/Variáveis 1/Saídas")
+    pasta_saidas = Path("/home/anna/tcc/variaveis/Variáveis 1/Saídas")
     pasta_saidas.mkdir(exist_ok=True)
     
-    arquivo_saida = "/home/anna/Documentos/PFC I/Variáveis 1/Saídas/cidades_por_regional.csv"
+    arquivo_saida = "/home/anna/tcc/variaveis/Variáveis 1/Saídas/cidades_por_regional.csv"
     
     print("=" * 60)
     print("Listando cidades por regional")

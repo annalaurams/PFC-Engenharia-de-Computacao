@@ -17,7 +17,7 @@ def executar(script, descricao):
     return True
 
 def main():
-    pasta_saidas = Path("/home/anna/Documentos/PFC I/Variáveis 1/Saídas")
+    pasta_saidas = Path("/home/anna/tcc/variaveis/Variáveis 1/Saídas")
     pasta_saidas.mkdir(exist_ok=True)
     
     print("\n" + " " * 40)

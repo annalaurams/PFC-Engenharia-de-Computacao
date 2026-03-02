@@ -15,8 +15,8 @@ def normalizar_cidade(cidade):
     cidade = re.sub(r'\s+', ' ', cidade)
     return cidade.strip()
 
-arquivo_original = "/home/anna/Documentos/PFC I/Variáveis 1/Saídas/cidades_por_regional.csv"
-arquivo_saida = "/home/anna/Documentos/PFC I/Variáveis 1/Saídas/PROBLEMAS_ENCONTRADOS.csv"
+arquivo_original = "/home/anna/tcc/variaveis/Variáveis 1/Saídas/cidades_por_regional.csv"
+arquivo_saida = "/home/anna/tcc/variaveis/Variáveis 1/Saídas/PROBLEMAS_ENCONTRADOS.csv"
 
 registros = []
 with open(arquivo_original, 'r', encoding='utf-8') as f:
