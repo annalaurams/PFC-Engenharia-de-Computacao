@@ -34,3 +34,19 @@ Informações sobre a infraestrutura hospitalar habilitada para tratamento oncol
 - `hospitais-habilitados-em-reconstrucao-mamaria.xlsx`: Hospitais credenciados para cirurgia de reconstrução mamária
 - `tratamento-sincronico.xlsx`: Dados sobre tratamento síncrono
 
+### 4. Código
+Scripts Python para análise e validação da estrutura de dados das regionais e municípios.
+
+**Scripts principais:**
+- **`cidades.py`** - Extrai lista de todas as cidades por regional das pastas
+- **`normalizar_csv.py`** - Normaliza nomes das cidades (remove acentos, minúsculas, sem "-MG")
+- **`listar_problemas.py`** - Identifica duplicatas e erros de nomenclatura
+- **`verificar_tudo.py`** - Script mestre que executa toda a análise
+
+**Uso:** Execute `python3 verificar_tudo.py` dentro da pasta Código para gerar todos os relatórios na pasta `Saídas/`.
+
+**Saídas geradas:**
+- `cidades_por_regional.csv` - Lista completa de cidades por regional
+- `cidades_por_regional_normalizado.csv` - Lista normalizada
+- `PROBLEMAS_ENCONTRADOS.csv` - Problemas identificados (duplicatas, erros de digitação)
+
