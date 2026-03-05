@@ -1,6 +1,0 @@
-Variáveis 1
-Atlas da Mortalidade INCA
-
-Feminino - Câncer de 1979 até 2024
-Muniícipios das Regionais de Saúde, no Sudeste dentro do estado de Minas Gerais
-Cada pasta contém as taxas de mortalidade por faixa estária, em cada cidade, dentro de uma regional de saúde
