@@ -10,6 +10,9 @@ import pandas as pd
 PASTA_RAIZ = Path("/home/anna/tcc/Variáveis/Mortalidade/Cidades Atendidas por Cada Regional")
 PASTA_SAIDA = Path("/home/anna/tcc/Tratamento/Mortalidade")
 ARQUIVO_SAIDA = PASTA_SAIDA / "mortalidade_agrupada_ano_faixa_etaria.csv"
+ARQUIVO_MUNICIPIOS = Path(
+    "/home/anna/tcc/Tratamento/Municípios/municipios_regionais_normalizados.csv"
+)
 
 ANOS = list(range(1979, 2025))
 FAIXAS_ETARIAS = [
@@ -45,6 +48,18 @@ def remover_sufixo_mg(texto: str) -> str:
     txt = re.sub(r"\s*-\s*mg$", "", txt)
     txt = re.sub(r"\s+mg$", "", txt)
     return txt.strip()
+
+
+def normalizar_chave_municipio(texto: str) -> str:
+    txt = remover_sufixo_mg(texto)
+    txt = txt.replace("-", " ").replace("'", " ")
+    txt = re.sub(r"\s+", " ", txt).strip()
+    aliases = {
+        "dona eusebia": "dona euzebia",
+        "sao thome das letras": "sao tome das letras",
+        "brasopolis": "brazopolis",
+    }
+    return aliases.get(txt, txt)
 
 
 def split_csv_line(linha: str) -> list[str]:
@@ -208,6 +223,56 @@ def organizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def carregar_mapa_codigos(arquivo_municipios: Path = ARQUIVO_MUNICIPIOS) -> dict[str, str]:
+    if not arquivo_municipios.exists():
+        raise FileNotFoundError(
+            f"Arquivo de municípios não encontrado: {arquivo_municipios}"
+        )
+
+    ref = pd.read_csv(arquivo_municipios, dtype={"codigo_ibge": "string"})
+    colunas_necessarias = {"municipio_normalizado", "codigo_ibge"}
+    faltantes = colunas_necessarias - set(ref.columns)
+    if faltantes:
+        raise ValueError(
+            "Arquivo de municípios sem colunas obrigatórias: "
+            f"{sorted(faltantes)}"
+        )
+
+    ref = ref.dropna(subset=["municipio_normalizado", "codigo_ibge"]).copy()
+    ref["municipio_normalizado"] = (
+        ref["municipio_normalizado"].astype(str).map(normalizar_chave_municipio)
+    )
+    ref["codigo_ibge"] = ref["codigo_ibge"].astype(str).str.strip()
+    ref = ref.drop_duplicates(subset=["municipio_normalizado"], keep="first")
+    return dict(zip(ref["municipio_normalizado"], ref["codigo_ibge"]))
+
+
+def adicionar_codigo_municipio(df: pd.DataFrame, mapa_codigos: dict[str, str]) -> pd.DataFrame:
+    if "Município" not in df.columns:
+        raise ValueError("DataFrame não possui a coluna obrigatória 'Município'.")
+
+    chaves = df["Município"].astype(str).map(normalizar_chave_municipio)
+    codigos = chaves.map(mapa_codigos)
+    sem_correspondencia = (
+        df.loc[codigos.isna(), "Município"].astype(str).dropna().sort_values().unique().tolist()
+    )
+
+    if sem_correspondencia:
+        print(
+            "[AVISO] Municípios sem correspondência de código "
+            f"({len(sem_correspondencia)}):"
+        )
+        for municipio in sem_correspondencia:
+            print(f"  - {municipio}")
+    else:
+        print("[OK] Todos os municípios tiveram código encontrado.")
+
+    df = df.drop(columns=["CÓDIGO"], errors="ignore").copy()
+    pos_municipio = list(df.columns).index("Município") + 1
+    df.insert(pos_municipio, "CÓDIGO", codigos)
+    return df
+
+
 def main() -> None:
     print(f"Pasta raiz: {PASTA_RAIZ}")
     print(f"Arquivo de saída: {ARQUIVO_SAIDA}")
@@ -219,12 +284,16 @@ def main() -> None:
 
     # Município: minúsculas sem acento e sem sufixo "-mg"
     df["Município"] = df["Município"].map(remover_sufixo_mg)
+    mapa_codigos = carregar_mapa_codigos()
+    df = adicionar_codigo_municipio(df, mapa_codigos=mapa_codigos)
 
     print("Dimensão final:", df.shape)
     print("Linhas (municípios):", len(df))
     print("Municípios únicos:", df["Município"].nunique())
     print("Regionais únicas:", df["Regional de Saúde"].nunique(dropna=True))
     print("Soma de TOTAL_MORTES:", df["TOTAL_MORTES"].sum(skipna=True))
+
+    df = df.rename(columns={"Município": "MUNICÌPIO"})
 
     df.to_csv(ARQUIVO_SAIDA, sep=",", index=False, encoding="utf-8")
 
