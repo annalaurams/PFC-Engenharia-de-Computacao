@@ -208,7 +208,7 @@ def main() -> None:
     tabela_final["Município"] = tabela_final["Município"].map(normalizar_texto)
     mapa_codigos = carregar_mapa_codigos()
     tabela_final = adicionar_coluna_codigo(tabela_final, mapa_codigos=mapa_codigos)
-    tabela_final = tabela_final.rename(columns={"Município": "MUNICÌPIOS"})
+    tabela_final = tabela_final.rename(columns={"Município": "MUNICÍPIOS"})
 
     tabela_final.to_csv(ARQUIVO_SAIDA, index=False, encoding="utf-8-sig")
     print(f"Pasta de entrada: {SOURCE_DIR}")

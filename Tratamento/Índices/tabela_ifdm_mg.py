@@ -6,13 +6,12 @@ import unicodedata
 
 import pandas as pd
 
-
 BASE_DIR = Path("/home/anna/tcc/Variáveis/Índices IFDM")
 BASE_XLSX = BASE_DIR / "Serie-Historica-IFDM-2013-a-2023.xlsx"
 FALLBACK_XLSX = BASE_DIR / "Dados" / "Serie-Historica-IFDM-2013-a-2023.xlsx"
 OUTPUT_DIR = Path("/home/anna/tcc/Tratamento/Índices")
 MUNICIPIOS_REF_CSV = Path(
-    "/home/anna/tcc/Tratamento/Municípios/municipios_regionais_normalizados.csv"
+    "/home/anna/tcc/Tratamento/Municípios/tabela_municipios_regionais.csv"
 )
 
 
@@ -60,7 +59,7 @@ def ordenar_colunas(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _renomear_colunas_indice(df: pd.DataFrame, indice: str) -> pd.DataFrame:
-    colunas_base = {"Municípios", "CÓDIGO", "COD_MUNIC"}
+    colunas_base = {"Municípios", "CÓDIGO"}
     mapeamento = {
         coluna: (coluna if coluna in colunas_base else f"{coluna} [{indice}]")
         for coluna in df.columns
@@ -120,7 +119,7 @@ def adicionar_coluna_codigo(
 
 def gerar_tabela_ifdm_unificada(
     output_dir: Path = OUTPUT_DIR,
-    output_name: str = "IFDM-Unificado-MG.csv",
+    output_name: str = "tabela_IFDM.csv",
 ) -> Path:
     base: pd.DataFrame | None = None
     mapa_codigos = carregar_mapa_codigos()
@@ -131,7 +130,7 @@ def gerar_tabela_ifdm_unificada(
             continue
 
         df = pd.read_csv(caminho)
-        for coluna in ("Municípios", "COD_MUNIC"):
+        for coluna in ("Municípios",):
             if coluna not in df.columns:
                 raise ValueError(
                     f"Arquivo '{arquivo_csv}' não possui a coluna obrigatória '{coluna}'."
@@ -139,13 +138,14 @@ def gerar_tabela_ifdm_unificada(
 
         df["Municípios"] = df["Municípios"].apply(normalizar_municipio)
         df = adicionar_coluna_codigo(df, mapa_codigos=mapa_codigos, nome_arquivo=arquivo_csv)
+        df = df.drop(columns=["COD_MUNIC"], errors="ignore")
 
         df = _renomear_colunas_indice(df, indice=indice)
 
         if base is None:
             base = df.copy()
         else:
-            base = base.merge(df, on=["Municípios", "CÓDIGO", "COD_MUNIC"], how="outer")
+            base = base.merge(df, on=["Municípios", "CÓDIGO"], how="outer")
 
     if base is None:
         raise FileNotFoundError(
@@ -153,10 +153,12 @@ def gerar_tabela_ifdm_unificada(
             f"{output_dir}. Arquivos esperados: {list(INDICE_POR_ARQUIVO)}"
         )
 
-    colunas_base = ["Municípios", "CÓDIGO", "COD_MUNIC"]
+    base = base.rename(columns={"Municípios": "MUNICÍPIOS"})
+
+    colunas_base = ["MUNICÍPIOS", "CÓDIGO"]
     colunas_restantes = [col for col in base.columns if col not in colunas_base]
     base = base[colunas_base + colunas_restantes]
-    base = base.sort_values(by=["Municípios", "CÓDIGO"], ascending=[True, True]).reset_index(drop=True)
+    base = base.sort_values(by=["MUNICÍPIOS", "CÓDIGO"], ascending=[True, True]).reset_index(drop=True)
 
     out_path = output_dir / output_name
     base.to_csv(out_path, index=False, encoding="utf-8-sig")

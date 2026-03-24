@@ -9,7 +9,7 @@ import pandas as pd
 
 PASTA_RAIZ = Path("/home/anna/tcc/Variáveis/Mortalidade/Cidades Atendidas por Cada Regional")
 PASTA_SAIDA = Path("/home/anna/tcc/Tratamento/Mortalidade")
-ARQUIVO_SAIDA = PASTA_SAIDA / "mortalidade_agrupada_ano_faixa_etaria.csv"
+ARQUIVO_SAIDA = PASTA_SAIDA / "tabela_mortalidade_faixa_etaria.csv"
 ARQUIVO_MUNICIPIOS = Path(
     "/home/anna/tcc/Tratamento/Municípios/municipios_regionais_normalizados.csv"
 )
@@ -252,7 +252,7 @@ def adicionar_codigo_municipio(df: pd.DataFrame, mapa_codigos: dict[str, str]) -
         raise ValueError("DataFrame não possui a coluna obrigatória 'Município'.")
 
     chaves = df["Município"].astype(str).map(normalizar_chave_municipio)
-    codigos = chaves.map(mapa_codigos)
+    codigos = chaves.map(mapa_codigos).astype("string")
     sem_correspondencia = (
         df.loc[codigos.isna(), "Município"].astype(str).dropna().sort_values().unique().tolist()
     )
@@ -293,8 +293,7 @@ def main() -> None:
     print("Regionais únicas:", df["Regional de Saúde"].nunique(dropna=True))
     print("Soma de TOTAL_MORTES:", df["TOTAL_MORTES"].sum(skipna=True))
 
-    df = df.rename(columns={"Município": "MUNICÌPIO"})
-
+    df = df.rename(columns={"Município": "MUNICÍPIOS"})
     df.to_csv(ARQUIVO_SAIDA, sep=",", index=False, encoding="utf-8")
 
     print(f"\nCSV criado: {ARQUIVO_SAIDA}")

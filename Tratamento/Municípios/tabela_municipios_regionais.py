@@ -4,7 +4,7 @@ import pandas as pd
 
 PROJETO_DIR = Path(__file__).resolve().parents[2]
 ARQUIVO_ENTRADA = PROJETO_DIR / "Variáveis" / "Municípios" / "Relacao-de-municipios-por-vinculacao-administrativa-090.xlsx"
-ARQUIVO_SAIDA = Path(__file__).with_name("municipios_regionais_normalizados.csv")
+ARQUIVO_SAIDA = Path(__file__).with_name("tabela_municipios_regionais.csv")
 NOME_ABA = "RegionalizaçãoMG2024"
 
 def normalizar_texto(texto: str) -> str:
