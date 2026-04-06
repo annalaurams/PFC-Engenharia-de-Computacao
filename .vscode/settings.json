@@ -1,0 +1,5 @@
+{
+  "python.defaultInterpreterPath": "${workspaceFolder}/Resultados/.venv/bin/python",
+  "python.terminal.activateEnvironment": true,
+  "jupyter.jupyterServerType": "local"
+}
