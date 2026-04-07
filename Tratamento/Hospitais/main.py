@@ -33,7 +33,7 @@ def carregar_dados() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     df_onco = pd.read_excel(
         DADOS_DIR / "hospitais-habilitados-em-oncologia-abril-2025.xlsx",
         header=1,
-    )  # pyright: ignore[reportUnknownMemberType]
+    )  
     df_onco.columns = df_onco.columns.str.strip()
     cols_ffill_onco = [df_onco.columns[0], df_onco.columns[1], df_onco.columns[2]]
     df_onco[cols_ffill_onco] = df_onco[cols_ffill_onco].ffill()
@@ -42,13 +42,13 @@ def carregar_dados() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     df_recon = pd.read_excel(
         DADOS_DIR / "hospitais-habilitados-em-reconstrucao-mamaria.xlsx",
         header=0,
-    )  # pyright: ignore[reportUnknownMemberType]
+    )  
     df_recon.columns = df_recon.columns.str.strip()
 
     df_sinc = pd.read_excel(
         DADOS_DIR / "tratamento-sincronico.xlsx",
         header=1,
-    )  # pyright: ignore[reportUnknownMemberType]
+    )  
     df_sinc.columns = df_sinc.columns.str.strip()
     df_sinc = df_sinc[df_sinc[df_sinc.columns[1]].notna()].reset_index(drop=True)
 
