@@ -1,35 +1,117 @@
 # PFC I - Base Integrada para Análise Oncológica em Minas Gerais
 
-Este repositório organiza a coleta, o armazenamento e o tratamento de dados usados no TCC, com foco em câncer de mama feminino em Minas Gerais. O objetivo é consolidar variáveis demográficas, assistenciais e socioeconômicas em tabelas padronizadas por município e série temporal.
+Base de dados integrada para análise de câncer de mama feminino em Minas Gerais. O projeto consolida informações de múltiplas fontes públicas com padronização territorial e temporal, permitindo análises estatísticas, cruzamentos entre variáveis e geração de evidências.
 
-## Visão geral do projeto
+## Sobre o projeto
 
-- **Tema**: análise de casos oncológicos e fatores associados em MG.
-- **Unidade geográfica principal**: município.
-- **Integração de fontes**: INCA (RHC/Atlas), FIRJAN (IFDM), bases administrativas de saúde e planilhas oficiais.
-- **Produto final**: tabelas tratadas em `Tratamento/` prontas para análise estatística, visualização e cruzamentos.
+Este TCC organiza dados demográficos, assistenciais, territoriais e socioeconômicos em uma base analítica consistente para estudar câncer de mama em MG.
 
-## Organização das pastas
+**Tema**: câncer de mama feminino | **Território**: Minas Gerais | **Unidade**: município | **Período**: histórico (1985-2025)
 
-- **`Variáveis/`**: camada de dados de entrada (brutos ou semibrutos), incluindo scripts de extração quando aplicável.
-- **`Tratamento/`**: camada de preparação e padronização (filtro MG, normalização de municípios, agregações por ano/faixa/categoria e unificações).
-- **`Dashboard/`**: artefatos de visualização e exploração.
-- **`src/`**: estrutura de pacote Python do projeto.
+## 📁 Estrutura do repositório
 
-## Fluxo de dados (alto nível)
+```
+PFC-I/
+├── Variáveis/              # Dados brutos e semibrutos por domínio
+│   ├── Casos/
+│   ├── Hospitais Habilitados/
+│   ├── Índices IFDM/
+│   ├── Mamografia/
+│   ├── Mortalidade/
+│   ├── Municípios/
+│   ├── População - Faixa Etária/
+│   ├── Socioeconômica/
+│   └── README.md
+│
+├── Tratamento/             # Scripts e saídas processadas
+│   ├── Casos/
+│   ├── Hospitais/
+│   ├── Índices/
+│   ├── Mamografia/
+│   ├── Mortalidade/
+│   ├── Municípios/
+│   ├── População - Faixa Etária/
+│   ├── Socioeconômico/
+│   └── README.md
+│
+├── Resultados/             # Análises e notebooks
+│   ├── casos.ipynb
+│   ├── mamografia.ipynb
+│   ├── mortalidade.ipynb
+│   ├── hospitais_habilitados.ipynb
+│   ├── municípios.ipynb
+│   ├── mortalidade.ipynb
+│   └── README.md
+│
+├── src/tcc/                # Pacote Python do projeto
+├── pyproject.toml          # Dependências e configuração
+└── README.md
+```
 
-1. **Aquisição**
-   - Parte dos dados é obtida por **extração automatizada via script** (ex.: RHC/INCA, Atlas de Mortalidade).
-   - Parte é obtida por **download direto de planilhas/tabelas oficiais** (ex.: IFDM FIRJAN, hospitais habilitados, população).
-2. **Armazenamento em `Variáveis/`**
-   - Organização por domínio temático (Casos, Mortalidade, IFDM, População, etc.).
-3. **Processamento em `Tratamento/`**
-   - Filtros de escopo (MG), padronização textual, harmonização de colunas e construção de tabelas consolidadas.
-4. **Consumo analítico**
-   - Uso das tabelas finais para análise no TCC e materiais de apoio (notebooks/dashboard).
+## 🔄 Fluxo de trabalho
 
-## Documentação detalhada
+1. **Variáveis/** → Dados brutos coletados de fontes públicas (INCA, FIRJAN, bases administrativas)
+2. **Tratamento/** → Limpeza, padronização territorial e consolidação em tabelas analíticas
+3. **Resultados/** → Exploração, cruzamentos e análise das bases tratadas
 
-- Detalhamento completo das variáveis: `Variáveis/README.md`
-- Detalhamento técnico dos tratamentos: `Tratamento/README.md`
+## 📚 Documentação
+
+- [Variáveis/README.md](Variáveis/README.md) — Origens dos dados e estrutura de aquisição
+- [Tratamento/README.md](Tratamento/README.md) — Processamento e como rodar os scripts
+- [Resultados/README.md](Resultados/README.md) — Notebooks de análise
+
+## 🛠️ Tecnologias e dependências
+
+**Python 3.12+** com as seguintes bibliotecas:
+
+| Categoria | Pacotes |
+|-----------|---------|
+| **Dados** | `pandas>=3.0.0`, `openpyxl>=3.1.5` |
+| **Geoespacial** | `geopandas>=1.1.0`, `geobr>=0.2.2` |
+| **Visualização** | `matplotlib>=3.10.8`, `seaborn>=0.13.2`, `plotly>=5.24.0`, `plotly-express>=0.4.1` |
+| **Web scraping** | `selenium>=4.40.0`, `webdriver-manager>=4.0.0` |
+| **Dev/Jupyter** | `ipykernel>=7.2.0`, `pyright>=1.1.408` |
+
+**Gerenciador**: [`uv`](https://docs.astral.sh/uv/) — gerenciador de pacotes Python rápido e confiável.
+
+## ▶️ Como executar o projeto
+
+### Instalação de dependências
+
+```bash
+# Com uv instalado
+uv sync
+
+# Ou com pip tradicional
+pip install -e .
+```
+
+### Processar os dados (Tratamento/)
+
+```bash
+# Executar um script específico
+python Tratamento/Casos/main.py
+
+# Ou executar todos em sequência
+cd Tratamento
+for dir in Casos Hospitais Índices Mamografia Mortalidade Municípios "População - Faixa Etária" Socioeconômico; do
+  python "$dir/main.py" && echo "✓ $dir"
+done
+```
+
+### Análise em Jupyter (Resultados/)
+
+```bash
+# Abrir e executar notebooks
+jupyter notebook Resultados/
+
+# Ou usar VS Code
+code Resultados/
+```
+
+## 📌 Notas importantes
+
+- Sempre execute **Tratamento/** após atualizar **Variáveis/**
+- Verifique a consistência de nomes de municípios antes de novos cruzamentos
+- Os notebooks em **Resultados/** consomem tabelas processadas em **Tratamento/**
 

@@ -1,144 +1,173 @@
-# Tratamento - Processamento e Padronização das Variáveis
+# Tratamento - Processamento e Padronização
 
-Esta pasta reúne as tabelas consolidadas e scripts de limpeza/transformação que convertem os dados de `Variáveis/` para um formato analítico consistente.
+Esta pasta concentra os scripts que transformam as bases brutas de [Variáveis/](../Variáveis/README.md) em tabelas analíticas consolidadas e padronizadas.
 
-## Objetivo técnico
+## 🎯 Objetivo
 
-- Padronizar nomes de município/regional.
-- Filtrar recortes de interesse (principalmente MG).
-- Harmonizar estrutura temporal (ano + categoria/faixa).
-- Consolidar múltiplas fontes em tabelas únicas por domínio.
+- Filtrar dados para Minas Gerais
+- Padronizar nomes de municípios, regionais e chaves territoriais
+- Harmonizar séries temporais (anos, categorias, faixas)
+- Consolidar saídas em formato pronto para análise
 
-## 1) Casos (`Tratamento/Casos`)
+## 📊 Estrutura de domínios e saídas
 
-### Arquivos finais
-- `resultado_ano_diagnostico_casos.csv`
-- `resultado_escolaridade_casos.csv`
-- `resultado_faixa_etaria_casos.csv`
-- `resultado_raca_cor_casos.csv`
-- `resultado_casos_unificado.csv`
+```
+Tratamento/
+├── Casos/
+│   ├── main.py
+│   ├── incidencia_ano_diagnostico.csv
+│   ├── incidencia_escolaridade.csv
+│   ├── incidencia_faixa_etaria.csv
+│   ├── incidencia_raca_cor.csv
+│   └── tabela_incidencia.csv
+│
+├── Hospitais/
+│   ├── main.py
+│   ├── filtro_hospitais_mg.csv
+│   └── tabela_hospitais_habilitados.csv
+│
+├── Índices/
+│   ├── tabela_ifdm_mg.py
+│   ├── IFDM-Educacao-MG.csv
+│   ├── IFDM-Emprego-Renda-MG.csv
+│   ├── IFDM-Geral-MG.csv
+│   ├── IFDM-Saude-MG.csv
+│   └── tabela_IFDM.csv
+│
+├── Mamografia/
+│   ├── main.py
+│   └── tabela_mamografia.csv
+│
+├── Mortalidade/
+│   ├── main.py
+│   └── tabela_mortalidade_faixa_etaria.csv
+│
+├── Municípios/
+│   ├── main.py
+│   └── tabela_municipios_regionais.csv
+│
+├── População - Faixa Etária/
+│   ├── A.py
+│   ├── main.py
+│   └── tabela_populacao_faixa_etaria.csv
+│
+└── Socioeconômico/
+    ├── main_10296_renda.py
+    ├── main_raca_cor.py
+    ├── tabela_raca_cor.csv
+    └── tabela_renda.csv
+```
 
-### Tratamento aplicado
-- Agregação por **município** e por dimensão analítica:
-  - ano diagnóstico;
-  - escolaridade;
-  - faixa etária;
-  - raça/cor.
-- Transformação para formato de colunas temporais do tipo `ANO_CATEGORIA`.
-- Unificação das quatro dimensões em um arquivo consolidado (`resultado_casos_unificado.csv`).
+## 📋 Etapas por domínio
 
-### Como o processamento é realizado
-- O fluxo de montagem está no notebook `tabela_numero_de_casos.ipynb`.
-- As saídas indicam pivotamento/merge de tabelas por município, preservando séries históricas de cada dimensão.
+### 1) **Casos**
+Processa dados do Registro Hospitalar de Câncer (RHC/INCA).
 
-## 2) Hospitais (`Tratamento/Hospitais`)
+**Saídas**:
+- `incidencia_ano_diagnostico.csv` — casos por ano de diagnóstico
+- `incidencia_escolaridade.csv` — casos por nível de escolaridade
+- `incidencia_faixa_etaria.csv` — casos por faixa etária
+- `incidencia_raca_cor.csv` — casos por raça-cor
+- `tabela_incidencia.csv` — unificação de todas as dimensões
 
-### Scripts
-- `hospitais_mg.py`
-- `normalizar_reduzir_colunas.py`
+**Operações**: Agregação por município, pivot por ano/categoria, consolidação
 
-### Arquivos finais
-- `hospitais_de_mg.csv`
-- `hospitais_de_mg_normalizado.csv`
+### 2) **Hospitais**
+Consolida bases de habilitação de estabelecimentos de saúde.
 
-### Tratamento aplicado
-1. **Leitura de 3 planilhas** (oncologia, reconstrução mamária e tratamento sincrônico).
-2. **Ajustes de estrutura**:
-   - `strip()` em nomes de colunas;
-   - preenchimento (`ffill`) de colunas hierárquicas na planilha de oncologia;
-   - remoção de linhas vazias conforme colunas-chave.
-3. **Filtro territorial**: manutenção apenas de registros de MG.
-4. **Unificação vertical** das 3 bases com coluna de tipo (`TIPO`).
-5. **Normalização final**:
-   - remoção de colunas administrativas não essenciais;
-   - normalização de `MUNICÍPIO` para minúsculas sem acento;
-   - reorganização com município na primeira coluna.
+**Saídas**:
+- `filtro_hospitais_mg.csv` — hospitais brutos para MG
+- `tabela_hospitais_habilitados.csv` — normalizado e consistente
 
-## 3) Índices (`Tratamento/Índices`)
+**Operações**: Filtragem para MG, limpeza estrutural, normalização de município
 
-### Script
-- `gerar_ifdm_mg_csvs.py`
+### 3) **Índices** (IFDM)
+Processa índices de desenvolvimento municipal da FIRJAN.
 
-### Arquivos finais
-- `IFDM-Geral-MG.csv`
-- `IFDM-Educacao-MG.csv`
-- `IFDM-Saude-MG.csv`
-- `IFDM-Emprego-Renda-MG.csv`
-- `IFDM-Unificado-MG.csv`
+**Saídas**:
+- `IFDM-Geral-MG.csv`, `IFDM-Educacao-MG.csv`, `IFDM-Saude-MG.csv`, `IFDM-Emprego-Renda-MG.csv`
+- `tabela_IFDM.csv` — merge dos 4 componentes
 
-### Tratamento aplicado
-1. Leitura da planilha histórica IFDM (com fallback de caminho).
-2. Filtro por `SIGLA_UF = MG`.
-3. Renomeação `NOME_MUNIC -> Municípios`.
-4. Normalização textual de municípios (minúsculas sem acento).
-5. Reordenação de colunas (identificação + rankings + valores IFDM).
-6. Geração de uma tabela ampla unificada (`IFDM-Unificado-MG.csv`) por merge dos quatro componentes:
-   - chave: `Municípios` + `COD_MUNIC`;
-   - colunas dos componentes recebem sufixo de índice (`[geral]`, `[educacao]`, `[saude]`, `[emprego_renda]`) para evitar colisão.
+**Operações**: Filtro de MG, padronização de município, reorganização de colunas
 
-## 4) Mortalidade (`Tratamento/Mortalidade`)
+### 4) **Mamografia**
+Consolida dados de mamogragia por ano.
 
-### Script
-- `tabela_mortalidade.py`
+**Saídas**:
+- `tabela_mamografia.csv` — série unificada 2013-2025
 
-### Arquivo final
-- `mortalidade_agrupada_ano_faixa_etaria.csv`
+**Operações**: Leitura de anuários, padronização, consolidação temporal
 
-### Tratamento aplicado
-1. Varredura da estrutura por **regional -> município -> arquivos CSV anuais**.
-2. Leitura robusta de CSV (tentativa `latin-1`, fallback `utf-8`).
-3. Extração do ano pelo nome do arquivo.
-4. Interpretação e padronização de rótulos de faixa etária para blocos:
-   - `0-9`, `10-19`, ..., `70-79`, `80 ou mais`.
-5. Conversão numérica com tratamento de formato brasileiro (`.` milhar, `,` decimal).
-6. Agregação em colunas `ANO_FAIXA` com soma quando necessário.
-7. Inclusão de colunas faltantes para padronizar grade temporal.
-8. Cálculo de `TOTAL_MORTES` por município.
-9. Normalização de `Município` (minúsculas sem acento e remoção de sufixo `-mg`).
+### 5) **Mortalidade**
+Processa dados do Atlas de Mortalidade (INCA).
 
-## 5) Municípios (`Tratamento/Municípios`)
+**Saídas**:
+- `tabela_mortalidade_faixa_etaria.csv` — mortes por faixa etária e ano
 
-### Script
-- `municipios_regionais_normalizados.py`
+**Operações**: Varredura regional → municipal, tratamento de encoding, agregação, cálculo de totais
 
-### Arquivo final
-- `municipios_regionais_normalizados.csv`
+### 6) **Municípios**
+Cria base de referência territorial.
 
-### Tratamento aplicado
-1. Leitura da aba `RegionalizaçãoMG2024` da planilha de referência.
-2. Seleção e reorganização de campos-chave:
-   - `codigo_ibge`
-   - `municipio_original` e `municipio_normalizado`
-   - `regional_original` e `regional_normalizada`
-3. Normalização textual (sem acento + minúsculas) para município e regional.
+**Saídas**:
+- `tabela_municipios_regionais.csv` — município, código IBGE, regional
 
-## 6) População - Faixa Etária (`Tratamento/População - Faixa Etária`)
+**Operações**: Seleção de campos, padronização textual
 
-### Script
-- `populacao_faixa_etaria.py`
+### 7) **População - Faixa Etária**
+Consolida dados populacionais por grupo etário.
 
-### Arquivo final
-- `tabela_populacao_faixa_etaria.csv`
+**Saídas**:
+- `tabela_populacao_faixa_etaria.csv` — população por faixa e ano
 
-### Tratamento aplicado
-1. Leitura de pares de arquivos por ano (`1-AAAA.csv` e `2-AAAA.csv`).
-2. Limpeza de colunas (`strip`, remoção de `Unnamed`).
-3. Merge interno por chaves (`Sigla`, `Código`, `Município`) para recompor faixas do ano.
-4. Mapeamento das colunas de idade originais para faixas decenais padronizadas.
-5. Criação de colunas `ANO_FAIXA` (ex.: `2010_40-49`).
-6. Merge entre anos para formar série histórica única.
-7. Conversão de faltantes para zero e cast para inteiro nas colunas numéricas.
-8. Cálculo de `TOTAL_POPULACAO` por município.
-9. Remoção de `Sigla` e `Código` na saída final e normalização do nome de município.
+**Operações**: Merge de pares anuais, mapeamento de idades, consolidação temporal
 
-## Padrões de transformação usados no projeto
+### 8) **Socioeconômico**
+Processa indicadores de renda e raça-cor.
 
-- Normalização textual com remoção de acentos e uso de minúsculas.
-- Reorganização de colunas para priorizar identificadores territoriais no início.
-- Uso de codificação UTF-8 (com BOM em parte das saídas) para compatibilidade com planilhas.
-- Consolidação em formato tabular amplo para facilitar cruzamento com outras variáveis.
+**Saídas**:
+- `tabela_renda.csv` — renda por município
+- `tabela_raca_cor.csv` — raça-cor por município
 
-## Reprodutibilidade
+**Operações**: Padronização, consolidação
 
-A atualização das tabelas tratadas depende da atualização prévia dos insumos em `Variáveis/`.
-Em seguida, os scripts de cada subpasta de `Tratamento/` podem ser executados de forma independente por domínio.
+## ▶️ Como executar
+
+### Executar um domínio específico
+
+```bash
+python Tratamento/Casos/main.py
+python Tratamento/Hospitais/main.py
+python Tratamento/Mamografia/main.py
+```
+
+### Executar todos em sequência
+
+```bash
+cd Tratamento
+
+for dir in Casos Hospitais Índices Mamografia Mortalidade Municípios "População - Faixa Etária" Socioeconômico; do
+  echo "Processando $dir..."
+  python "$dir/main.py" && echo "✓ $dir concluído" || echo "✗ Erro em $dir"
+done
+```
+
+### Com uv
+
+```bash
+uv run python Tratamento/Casos/main.py
+```
+
+## 📌 Padrões adotados
+
+- **Normalização textual**: minúsculas, sem acentos para chaves de município
+- **Estrutura temporal**: colunas ANO_CATEGORIA (ex: 2022_BRANCO, 2023_PRETA)
+- **Formato retangular**: amplo (many columns) para facilitar cruzamentos
+- **Compatibilidade**: saídas prontas para uso em planilhas e Jupyter
+
+## ✅ Checklist antes de análise
+
+- [ ] Todas as bases em Variáveis/ foram atualizadas?
+- [ ] Scripts executados com sucesso?
+- [ ] Saídas geradas em cada subpasta?
+- [ ] Pronto para consumo em [Resultados/](../Resultados/README.md)

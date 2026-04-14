@@ -1,118 +1,102 @@
-# Variáveis - Dicionário das Bases de Entrada
+# Variáveis - Dados de Entrada
 
-Esta pasta concentra as bases utilizadas no projeto antes do processamento final. As variáveis estão organizadas por tema e podem ter origem em:
+Esta pasta reúne as bases de entrada coletadas de fontes públicas, anteriores à etapa de processamento. Os arquivos estão organizados por domínio temático para facilitar atualização, rastreabilidade e reprocessamento.
 
-- **extração automatizada por script** (ex.: Selenium/rotinas de coleta);
-- **download direto de tabelas/planilhas oficiais**.
+## 📋 Estrutura de domínios
 
-## Escopo comum
+```
+Variáveis/
+├── Casos/                          # Registro Hospitalar de Câncer (INCA)
+│   ├── Ano Diagnóstico/
+│   │   ├── Código/
+│   │   └── Dados/
+│   ├── Escolaridade/
+│   │   ├── Código/
+│   │   └── Dados/
+│   ├── Faixa Etária/
+│   │   ├── Código/
+│   │   └── Dados/
+│   └── Raça-Cor/
+│       ├── Código/
+│       └── Dados/
+│
+├── Hospitais Habilitados/          # Bases de estabelecimentos de saúde
+│
+├── Índices IFDM/                   # Índices de Desenvolvimento Municipal (FIRJAN)
+│
+├── Mamografia/                     # Mamografias por ano
+│   └── Dados/
+│       ├── mamografia_2013.csv
+│       ├── mamografia_2014.csv
+│       └── ...
+│
+├── Mortalidade/                    # Atlas de Mortalidade (INCA)
+│   └── Regionais de Saúde (29)/
+│       └── [27 arquivos regionais com subpastas de municípios]
+│
+├── Municípios/                     # Base de referência territorial
+│
+├── População - Faixa Etária/       # Dados populacionais por grupo etário
+│   ├── 1-1970.csv
+│   ├── 1-1980.csv
+│   └── ...
+│
+└── Socioeconômica/                 # Indicadores de renda e raça-cor
+    ├── tabela_10296_renda.csv
+    └── tabela_raca_cor.csv
+```
 
-- Recorte temático principal: câncer de mama feminino.
-- Recorte territorial principal: Minas Gerais (MG).
-- Unidade geográfica predominante: município (quando disponível na fonte).
+## 🔍 Domínios de dados
 
-## 1) Casos
+### 1) **Casos** (RHC/INCA)
+- **Formato**: CSVs com dados de casos por município e dimensão
+- **Período**: 1985-2023 (conforme disponibilidade por categoria)
+- **Origem**: Registro Hospitalar de Câncer — extração via script de consulta ao INCA
+- **Dimensões**: Ano diagnóstico, escolaridade, faixa etária, raça-cor
 
-### O que representa
-Distribuições de casos do Registro Hospitalar de Câncer (RHC/INCA), com filtros de interesse do estudo (C50, sexo feminino, procedência MG), separadas por diferentes dimensões.
+### 2) **Hospitais Habilitados**
+- **Formato**: Planilhas e CSVs administrativos
+- **Período**: Base pontual (data de publicação)
+- **Origem**: Download direto de bases administrativas oficiais do ministério
 
-### Série temporal
-- Arquivos anuais disponíveis em geral de **1985 a 2023** (a depender da disponibilidade do portal para cada dimensão).
+### 3) **Índices IFDM** (Índice Firjam de Desenvolvimento Municipal)
+- **Formato**: CSV municipal com 4 índices
+- **Período**: 2013-2023
+- **Origem**: Série histórica oficial da FIRJAN
+- **Componentes**: Geral, Educação, Saúde, Emprego & Renda
 
-### Características relevantes
-- **Fonte**: INCA (RHC).
-- **Granularidade**: município + categoria (ano diagnóstico, escolaridade, faixa etária, raça/cor).
-- **Aquisição**: predominantemente via **scripts de extração** em `Casos/*/Código/main_extracao.py`.
-- **Saída de entrada**: CSVs anuais em `Casos/*/Dados/`.
+### 4) **Mamografia**
+- **Formato**: CSVs anuais consolidados
+- **Período**: 2013-2025
+- **Origem**: Coleta e armazenamento em Dados/, processados por script
 
-Subgrupos:
-- **Ano Diagnóstico**: distribuição por ano de diagnóstico.
-- **Escolaridade**: distribuição por categorias educacionais.
-- **Faixa Etária**: distribuição por grupos etários.
-- **Raça-Cor**: distribuição por categorias de raça/cor.
+### 5) **Mortalidade**
+- **Formato**: Arquivos de texto por regional e município
+- **Período**: Histórico amplo (uso em projeto: 1979-2024)
+- **Origem**: Atlas de Mortalidade (INCA) — extração via script com tratamento de encoding
 
-## 2) Hospitais Habilitados
+### 6) **Municípios**
+- **Formato**: Base de referência territorial (município, código IBGE, regional)
+- **Período**: Administrativa (sem série temporal)
+- **Origem**: Download direto de planilha oficial de regionalização
 
-### O que representa
-Oferta de serviços habilitados relacionados à oncologia (incluindo reconstrução mamária e tratamento sincrônico).
+### 7) **População por Faixa Etária**
+- **Formato**: Pares de CSVs anuais (1-AAAA.csv e 2-AAAA.csv)
+- **Período**: 1970, 1980, 1991, 2000, 2010, 2022
+- **Origem**: Download direto de tabelas oficiais de população
 
-### Série temporal
-- Base **pontual/snapshot** (ex.: abril/2025 para uma das planilhas).
+### 8) **Socioeconômica**
+- **Formato**: CSVs consolidados
+- **Período**: Conforme disponibilidade de fontes originais
+- **Origem**: Download direto de indicadores de renda e raça-cor
 
-### Características relevantes
-- **Fonte**: planilhas administrativas de saúde.
-- **Granularidade**: estabelecimento de saúde.
-- **Aquisição**: **download direto** de arquivos XLSX.
-- **Conteúdo**: inclui campos administrativos (CNPJ/CNES/códigos), localização e tipo de habilitação.
+## 🔄 Estratégias de aquisição
 
-## 3) Índices IFDM (por vezes referenciado como “FDN”)
+O projeto combina **duas abordagens**:
 
-### O que representa
-Indicadores do Índice FIRJAN de Desenvolvimento Municipal (IFDM) e seus componentes para municípios de MG.
+1. **Extração via script** — para fontes com consulta dinâmica (RHC/INCA, Atlas de Mortalidade)
+2. **Download direto** — para planilhas e bases já consolidadas (IFDM, hospitais, população, socioeconômico)
 
-### Série temporal
-- **2013 a 2023**.
+## ✅ Próximo passo
 
-### Características relevantes
-- **Fonte**: FIRJAN (série histórica do IFDM).
-- **Granularidade**: município (com código municipal).
-- **Aquisição**: base principal por **download direto** de planilha histórica.
-- **Componentes incluídos**:
-  - IFDM Geral
-  - IFDM Educação
-  - IFDM Saúde
-  - IFDM Emprego e Renda
-- **Campos típicos**: ranking estadual, ranking nacional/geral e valor do índice por ano.
-
-## 4) Mortalidade
-
-### O que representa
-Óbitos por câncer, organizados por regional de saúde e por município vinculado a cada regional.
-
-### Série temporal
-- Cobertura histórica ampla, com uso no projeto de **1979 a 2024** na etapa de consolidação.
-
-### Características relevantes
-- **Fonte**: Atlas de Mortalidade por Câncer (INCA).
-- **Granularidade**: município e regional (com detalhamento por faixa etária, conforme arquivo).
-- **Aquisição**: majoritariamente via **scripts de extração/auditoria** nas subpastas de mortalidade.
-- **Estrutura de entrada**:
-  - `Mortalidade/Regionais de Saúde (29)/`
-  - `Mortalidade/Cidades Atendidas por Cada Regional/`
-
-## 5) Municípios
-
-### O que representa
-Relação de municípios e vinculação administrativa por regional de saúde.
-
-### Série temporal
-- Base de referência administrativa (não necessariamente anual).
-
-### Características relevantes
-- **Fonte**: planilha oficial de regionalização (XLSX).
-- **Granularidade**: município com código IBGE e regional.
-- **Aquisição**: **download direto** da planilha.
-- **Uso no projeto**: chave de apoio para padronização territorial e cruzamentos.
-
-## 6) População - Faixa Etária
-
-### O que representa
-População municipal por grupos etários, usada para contextualização e indicadores.
-
-### Série temporal
-- Anos de referência disponíveis: **1970, 1980, 1991, 2000, 2010, 2022**.
-
-### Características relevantes
-- **Fonte**: tabelas oficiais de população.
-- **Granularidade**: município + faixa etária.
-- **Aquisição**: **download direto** dos CSVs.
-- **Formato de entrada**: pares de arquivos por ano (`1-AAAA.csv` e `2-AAAA.csv`) para completar o conjunto de faixas.
-
-## Observação sobre origem dos dados
-
-Neste projeto coexistem duas estratégias de aquisição:
-
-1. **Extração via script**: usada principalmente em fontes com interface de consulta/exportação dinâmica (ex.: RHC e Atlas).
-2. **Download direto de tabelas**: usada em bases disponibilizadas em planilhas/CSV oficiais (ex.: IFDM, hospitais e população).
-
-Essa distinção é importante para reprodutibilidade e atualização periódica das bases.
+Após atualizar bases em Variáveis/, execute os scripts correspondentes em [Tratamento/README.md](../Tratamento/README.md) para consolidar e padronizar os dados.

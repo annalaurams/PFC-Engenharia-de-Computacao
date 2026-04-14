@@ -1,3 +1,4 @@
+
 # pyright: reportUnknownMemberType=false
 
 import re
@@ -54,7 +55,8 @@ def extrair_codigo_municipio(valor: object) -> tuple[str | None, str | None]:
         return None, None
 
     texto = valor.strip().strip("\ufeff")
-    m = re.match(r"\s*(\d{5,8})\s+(.*)$", texto)
+    # aceita até 7 dígitos e padroniza depois para 7 dígitos IBGE
+    m = re.match(r"\s*(\d{1,7})\s+(.*)$", texto)
     if not m:
         return None, None
 
@@ -79,8 +81,8 @@ def carregar_por_ano(arquivo: Path) -> pd.DataFrame:
     df = df.dropna(subset=["codigo", "municipio_raw"]).copy()
 
     df["codigo"] = df["codigo"].astype(str).str.strip()
-    largura = int(df["codigo"].str.len().max())
-    df["codigo"] = df["codigo"].str.zfill(largura)
+    # Garantir que o código IBGE tenha 7 dígitos (com zeros à esquerda se necessário)
+    df["codigo"] = df["codigo"].str.zfill(7)
 
     df["municipios"] = df["municipio_raw"].map(normalizar_municipio)
     df = df.drop(columns=["municipio_raw"])
@@ -194,6 +196,39 @@ def gerar_tabela() -> pd.DataFrame:
     tabela = tabela[colunas_ordenadas]
 
     tabela = tabela.sort_values(["codigo"]).reset_index(drop=True)
+
+    # Tentar mapear/normalizar o código para o IBGE 7 dígitos usando tabela de municípios
+    municipios_csv = Path(__file__).parents[1] / "Munic\u00edpios" / "tabela_municipios_regionais.csv"
+    try:
+        df_mun = pd.read_csv(municipios_csv, dtype=str)
+        # coluna com nomes normalizados disponível como 'municipio_normalizado'
+        if "municipio_normalizado" in df_mun.columns:
+            mapa = df_mun.set_index("municipio_normalizado")["codigo_ibge"].to_dict()
+            tabela["codigo_ibge_mapeado"] = tabela["municipios"].map(mapa)
+
+            # Substitui quando temos mapeamento por nome
+            tabela["codigo"] = tabela["codigo_ibge_mapeado"].fillna(tabela["codigo"])  # prefere mapeamento
+
+            # Fallback: para códigos menores que 7 dígitos, tenta encontrar por sufixo único
+            mask_short = tabela["codigo"].notna() & (tabela["codigo"].str.len() < 7)
+            if mask_short.any():
+                cods = df_mun["codigo_ibge"].astype(str)
+
+                def expand_codigo(c):
+                    if not isinstance(c, str) or len(c) >= 7:
+                        return c
+                    matches = cods[cods.str.endswith(c)]
+                    if len(matches) == 1:
+                        return matches.iloc[0]
+                    return c
+
+                tabela.loc[mask_short, "codigo"] = tabela.loc[mask_short, "codigo"].map(expand_codigo)
+
+            tabela = tabela.drop(columns=[c for c in ["codigo_ibge_mapeado"] if c in tabela.columns])
+    except FileNotFoundError:
+        # se não houver a tabela de municípios, mantemos o código gerado
+        pass
+
     tabela = tabela.rename(columns={"municipios": "Municípios", "codigo": "Código"})
     return tabela
 
