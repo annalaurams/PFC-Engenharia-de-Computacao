@@ -1,20 +1,15 @@
-# pyright: reportUnknownMemberType=false
-
 import unicodedata
 from pathlib import Path
 
 import pandas as pd
 
-DADOS_DIR = Path("/home/anna/tcc/Variáveis/Hospitais Habilitados")
-SAIDA_DIR = Path("/home/anna/tcc/Tratamento/Hospitais")
-ARQUIVOS_MUNICIPIOS_CANDIDATOS = [
+ROOT = Path("/home/anna/tcc/Tratamento/Hospitais")
+ENTRADA = Path("/home/anna/tcc/Variáveis/Hospitais Habilitados")
+SAIDA = ROOT / "tabela_hospitais_habilitados.csv"
+MUNICIPIOS = [
     Path("/home/anna/tcc/Tratamento/Municípios/tabela_municipios_regionais.csv"),
     Path("/home/anna/tcc/Tratamento/Municípios/municipios_regionais_normalizados.csv"),
 ]
-SAIDA_DIR.mkdir(parents=True, exist_ok=True)
-
-SAIDA_FILTRO = SAIDA_DIR / "filtro_hospitais_mg.csv"
-SAIDA_TABELA = SAIDA_DIR / "tabela_hospitais_habilitados.csv"
 
 COLUNAS_REMOVER = [
     "UF",
@@ -29,69 +24,8 @@ COLUNAS_REMOVER = [
 ]
 
 
-def carregar_dados() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    df_onco = pd.read_excel(
-        DADOS_DIR / "hospitais-habilitados-em-oncologia-abril-2025.xlsx",
-        header=1,
-    )  
-    df_onco.columns = df_onco.columns.str.strip()
-    cols_ffill_onco = [df_onco.columns[0], df_onco.columns[1], df_onco.columns[2]]
-    df_onco[cols_ffill_onco] = df_onco[cols_ffill_onco].ffill()
-    df_onco = df_onco.dropna(subset=[df_onco.columns[4]]).reset_index(drop=True)
-
-    df_recon = pd.read_excel(
-        DADOS_DIR / "hospitais-habilitados-em-reconstrucao-mamaria.xlsx",
-        header=0,
-    )  
-    df_recon.columns = df_recon.columns.str.strip()
-
-    df_sinc = pd.read_excel(
-        DADOS_DIR / "tratamento-sincronico.xlsx",
-        header=1,
-    )  
-    df_sinc.columns = df_sinc.columns.str.strip()
-    df_sinc = df_sinc[df_sinc[df_sinc.columns[1]].notna()].reset_index(drop=True)
-
-    return df_onco, df_recon, df_sinc
-
-
-def filtrar_mg(
-    df_onco: pd.DataFrame,
-    df_recon: pd.DataFrame,
-    df_sinc: pd.DataFrame,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    col_uf_onco = df_onco.columns[0]
-    df_onco_mg = df_onco[df_onco[col_uf_onco].astype(str).str.strip() == "MG"].reset_index(drop=True)
-
-    col_uf_recon = df_recon.columns[0]
-    df_recon_mg = df_recon[df_recon[col_uf_recon].astype(str).str.strip() == "MG"].reset_index(drop=True)
-
-    col_uf_sinc = df_sinc.columns[1]
-    df_sinc_mg = df_sinc[df_sinc[col_uf_sinc].astype(str).str.strip() == "MG"].reset_index(drop=True)
-
-    return df_onco_mg, df_recon_mg, df_sinc_mg
-
-
-def gerar_tabela_filtro(
-    df_onco_mg: pd.DataFrame,
-    df_recon_mg: pd.DataFrame,
-    df_sinc_mg: pd.DataFrame,
-) -> pd.DataFrame:
-    df_unificado = pd.concat(
-        {
-            "Oncologia": df_onco_mg,
-            "Reconstrução Mamária": df_recon_mg,
-            "Tratamento Sincrônico": df_sinc_mg,
-        },
-        axis=0,
-        sort=False,
-    )
-    df_unificado.index.names = ["TIPO", "ID_ORIGINAL"]
-
-    df_filtro = df_unificado.reset_index(level="TIPO")
-    df_filtro.to_csv(SAIDA_FILTRO, index=False, encoding="utf-8-sig")
-    return df_filtro
-
+# ________________________________________________________________________________
+# Texto
 
 def remover_acentos(texto: str) -> str:
     normalizado = unicodedata.normalize("NFD", texto)
@@ -118,52 +52,109 @@ def normalizar_chave_municipio(valor: object) -> object:
     return aliases.get(texto, texto)
 
 
-def carregar_mapa_codigo_municipio() -> dict[str, int]:
-    arquivo_municipios = next(
-        (p for p in ARQUIVOS_MUNICIPIOS_CANDIDATOS if p.exists()),
-        None,
+# ________________________________________________________________________________
+# Arquivos
+
+def carregar_dados() -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    df_onco = pd.read_excel(
+        ENTRADA / "hospitais-habilitados-em-oncologia-abril-2025.xlsx",
+        header=1,
     )
-    if arquivo_municipios is None:
-        candidatos = ", ".join(str(p) for p in ARQUIVOS_MUNICIPIOS_CANDIDATOS)
+    df_onco.columns = df_onco.columns.str.strip()
+    colunas_onco = [df_onco.columns[0], df_onco.columns[1], df_onco.columns[2]]
+    df_onco[colunas_onco] = df_onco[colunas_onco].ffill()
+    df_onco = df_onco.dropna(subset=[df_onco.columns[4]]).reset_index(drop=True)
+
+    df_recon = pd.read_excel(
+        ENTRADA / "hospitais-habilitados-em-reconstrucao-mamaria.xlsx",
+        header=0,
+    )
+    df_recon.columns = df_recon.columns.str.strip()
+
+    df_sinc = pd.read_excel(
+        ENTRADA / "tratamento-sincronico.xlsx",
+        header=1,
+    )
+    df_sinc.columns = df_sinc.columns.str.strip()
+    df_sinc = df_sinc[df_sinc[df_sinc.columns[1]].notna()].reset_index(drop=True)
+
+    return df_onco, df_recon, df_sinc
+
+
+def carregar_mapa_codigo_municipio() -> dict[str, int]:
+    arquivo = next((p for p in MUNICIPIOS if p.exists()), None)
+    if arquivo is None:
+        candidatos = ", ".join(str(p) for p in MUNICIPIOS)
         raise FileNotFoundError(f"Nenhum arquivo de municípios encontrado. Tentativas: {candidatos}")
 
-    df_municipios = pd.read_csv(arquivo_municipios, encoding="utf-8-sig")
+    df = pd.read_csv(arquivo, encoding="utf-8-sig")
+    obrigatorias = {"codigo_ibge", "municipio_normalizado"}
+    faltando = obrigatorias - set(df.columns)
+    if faltando:
+        raise ValueError(f"Arquivo de municípios sem colunas obrigatórias: {sorted(faltando)}")
 
-    colunas_obrigatorias = {"codigo_ibge", "municipio_normalizado"}
-    faltantes = colunas_obrigatorias - set(df_municipios.columns)
-    if faltantes:
-        raise ValueError(
-            f"Arquivo de municípios sem colunas obrigatórias: {sorted(faltantes)}"
-        )
-
-    df_municipios["municipio_chave"] = df_municipios["municipio_normalizado"].map(
-        normalizar_chave_municipio
-    )
-    df_municipios = df_municipios.dropna(subset=["municipio_chave", "codigo_ibge"])
+    df["municipio_chave"] = df["municipio_normalizado"].map(normalizar_chave_municipio)
+    df = df.dropna(subset=["municipio_chave", "codigo_ibge"])
 
     return dict(
         zip(
-            df_municipios["municipio_chave"].astype(str),
-            df_municipios["codigo_ibge"].astype(int),
+            df["municipio_chave"].astype(str),
+            df["codigo_ibge"].astype(int),
             strict=False,
         )
     )
 
 
-def gerar_tabela_habilitados(df_filtro: pd.DataFrame) -> pd.DataFrame:
-    coluna_municipio = None
-    if "MUNICÍPIO" in df_filtro.columns:
+# ________________________________________________________________________________
+# Tratamento
+
+def filtrar_mg(
+    df_onco: pd.DataFrame,
+    df_recon: pd.DataFrame,
+    df_sinc: pd.DataFrame,
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    col_onco = df_onco.columns[0]
+    col_recon = df_recon.columns[0]
+    col_sinc = df_sinc.columns[1]
+
+    df_onco_mg = df_onco[df_onco[col_onco].astype(str).str.strip() == "MG"].reset_index(drop=True)
+    df_recon_mg = df_recon[df_recon[col_recon].astype(str).str.strip() == "MG"].reset_index(drop=True)
+    df_sinc_mg = df_sinc[df_sinc[col_sinc].astype(str).str.strip() == "MG"].reset_index(drop=True)
+
+    return df_onco_mg, df_recon_mg, df_sinc_mg
+
+
+def unir_tabelas(
+    df_onco_mg: pd.DataFrame,
+    df_recon_mg: pd.DataFrame,
+    df_sinc_mg: pd.DataFrame,
+) -> pd.DataFrame:
+    tabela = pd.concat(
+        {
+            "Oncologia": df_onco_mg,
+            "Reconstrução Mamária": df_recon_mg,
+            "Tratamento Sincrônico": df_sinc_mg,
+        },
+        axis=0,
+        sort=False,
+    )
+    tabela.index.names = ["TIPO", "ID_ORIGINAL"]
+    return tabela.reset_index(level="TIPO")
+
+
+# ________________________________________________________________________________
+# Criação de colunas
+
+def gerar_tabela_habilitados(tabela: pd.DataFrame) -> pd.DataFrame:
+    if "MUNICÍPIO" in tabela.columns:
         coluna_municipio = "MUNICÍPIO"
-    elif "MUNICÍPIOS" in df_filtro.columns:
+    elif "MUNICÍPIOS" in tabela.columns:
         coluna_municipio = "MUNICÍPIOS"
     else:
-        raise ValueError(
-            "Coluna obrigatória de município não encontrada no filtro de hospitais. "
-            "Esperado: 'MUNICÍPIO' ou 'MUNICÍPIOS'."
-        )
+        raise ValueError("Coluna de município não encontrada na tabela de hospitais.")
 
     mapa_codigo = carregar_mapa_codigo_municipio()
-    df = df_filtro.copy()
+    df = tabela.copy()
 
     colunas_existentes = [c for c in COLUNAS_REMOVER if c in df.columns]
     df = df.drop(columns=colunas_existentes)
@@ -172,16 +163,16 @@ def gerar_tabela_habilitados(df_filtro: pd.DataFrame) -> pd.DataFrame:
     df["municipio_chave"] = df[coluna_municipio].map(normalizar_chave_municipio)
     df["CÓDIGO"] = df["municipio_chave"].map(mapa_codigo)
 
-    municipios_sem_codigo = sorted(
+    sem_codigo = sorted(
         {
             str(municipio)
             for municipio in df.loc[df["CÓDIGO"].isna(), coluna_municipio].dropna().unique().tolist()
         }
     )
 
-    if municipios_sem_codigo:
+    if sem_codigo:
         print("Municípios sem correspondência de código:")
-        for municipio in municipios_sem_codigo:
+        for municipio in sem_codigo:
             print(f"- {municipio}")
     else:
         print("Todos os municípios tiveram código encontrado.")
@@ -192,24 +183,25 @@ def gerar_tabela_habilitados(df_filtro: pd.DataFrame) -> pd.DataFrame:
     if coluna_municipio != "MUNICÍPIOS":
         df = df.rename(columns={coluna_municipio: "MUNICÍPIOS"})
 
-    cols = ["MUNICÍPIOS", "CÓDIGO"] + [
-        c for c in df.columns if c not in {"MUNICÍPIOS", "CÓDIGO"}
-    ]
+    cols = ["MUNICÍPIOS", "CÓDIGO"] + [c for c in df.columns if c not in {"MUNICÍPIOS", "CÓDIGO"}]
     df = df[cols]
-
-    df.to_csv(SAIDA_TABELA, index=False, encoding="utf-8-sig")
     return df
 
+
+# ________________________________________________________________________________
+# Operações
 
 def main() -> None:
     df_onco, df_recon, df_sinc = carregar_dados()
     df_onco_mg, df_recon_mg, df_sinc_mg = filtrar_mg(df_onco, df_recon, df_sinc)
-    df_filtro = gerar_tabela_filtro(df_onco_mg, df_recon_mg, df_sinc_mg)
-    df_tabela = gerar_tabela_habilitados(df_filtro)
+    tabela = unir_tabelas(df_onco_mg, df_recon_mg, df_sinc_mg)
+    df_tabela = gerar_tabela_habilitados(tabela)
 
-    print(f"Pasta de entrada: {DADOS_DIR}")
-    print(f"CSV de filtro salvo em: {SAIDA_FILTRO}")
-    print(f"Tabela final salva em: {SAIDA_TABELA}")
+    SAIDA.parent.mkdir(parents=True, exist_ok=True)
+    df_tabela.to_csv(SAIDA, index=False, encoding="utf-8-sig")
+
+    print(f"Pasta de entrada: {ENTRADA}")
+    print(f"Tabela final salva em: {SAIDA}")
     print(
         "Linhas por tipo (MG): "
         f"Oncologia={len(df_onco_mg)}, "

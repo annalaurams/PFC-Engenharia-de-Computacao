@@ -2,10 +2,13 @@ from pathlib import Path
 import unicodedata
 import pandas as pd
 
-PROJETO_DIR = Path(__file__).resolve().parents[2]
-ARQUIVO_ENTRADA = PROJETO_DIR / "Variáveis" / "Municípios" / "Relacao-de-municipios-por-vinculacao-administrativa-090.xlsx"
-ARQUIVO_SAIDA = Path(__file__).with_name("tabela_municipios_regionais.csv")
-NOME_ABA = "RegionalizaçãoMG2024"
+ROOT = Path(__file__).resolve().parents[2]
+ENTRADA = ROOT / "Variáveis" / "Municípios" / "Relacao-de-municipios-por-vinculacao-administrativa-090.xlsx"
+SAIDA = Path(__file__).with_name("tabela_municipios_regionais.csv")
+ABA = "RegionalizaçãoMG2024"
+
+# ________________________________________________________________________________
+# Texto
 
 def normalizar_texto(texto: str) -> str:
     texto = "" if pd.isna(texto) else str(texto).strip()
@@ -14,10 +17,13 @@ def normalizar_texto(texto: str) -> str:
     return texto.lower()
 
 
-def main() -> None:
-    df = pd.read_excel(ARQUIVO_ENTRADA, sheet_name=NOME_ABA, header=3)  # pyright: ignore[reportUnknownMemberType]
+# ________________________________________________________________________________
+# Operações
 
-    resultado = pd.DataFrame(
+def main() -> None:
+    df = pd.read_excel(ENTRADA, sheet_name=ABA, header=3)
+
+    tabela = pd.DataFrame(
         {
             "codigo_ibge": df["Código IBGE"],
             "municipio_original": df["Município "].astype(str).str.strip(),
@@ -27,9 +33,9 @@ def main() -> None:
         }
     )
 
-    resultado.to_csv(ARQUIVO_SAIDA, index=False, encoding="utf-8-sig")
-    print(f"CSV gerado em: {ARQUIVO_SAIDA}")
-    print(f"Total de linhas: {len(resultado)}")
+    tabela.to_csv(SAIDA, index=False, encoding="utf-8-sig")
+    print(f"CSV gerado em: {SAIDA}")
+    print(f"Total de linhas: {len(tabela)}")
 
 
 if __name__ == "__main__":

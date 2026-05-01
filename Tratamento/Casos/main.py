@@ -1,19 +1,23 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from io import StringIO
-from pathlib import Path
 import argparse
 import re
 import unicodedata
+from dataclasses import dataclass
+from io import StringIO
+from pathlib import Path
 
 import pandas as pd
 
 
 @dataclass(frozen=True)
 class Config:
-	base_variaveis: Path
-	out_dir: Path
+	base: Path
+	out: Path
+
+
+# ________________________________________________________________________________
+# Texto
 
 
 def normalize_text(value: str) -> str:
@@ -39,6 +43,9 @@ def parse_municipio_codigo(procedencia: str) -> tuple[str | None, int | None]:
 	municipio = normalize_text(match.group(2))
 	return municipio, codigo
 
+
+# ________________________________________________________________________________
+# Arquivos
 
 def read_raw_table(file_path: Path) -> pd.DataFrame:
 	content = file_path.read_text(encoding="latin1", errors="ignore").splitlines()
@@ -80,6 +87,9 @@ def numeric_columns(df: pd.DataFrame, skip: set[str]) -> list[str]:
 		cols.append(col)
 	return cols
 
+
+# ________________________________________________________________________________
+# Tratamento
 
 def aggregate_ano_diagnostico(raw_files: list[Path]) -> pd.DataFrame:
 	frames: list[pd.DataFrame] = []
@@ -142,6 +152,9 @@ FAIXA_TARGET = [
 	"80 ou mais",
 ]
 
+
+# ________________________________________________________________________________
+# Criação de colunas
 
 def map_faixa(col: str) -> str | None:
 	c = normalize_text(col).replace(" ", "")
@@ -227,16 +240,20 @@ def build_tabela_incidencia(
 	return out
 
 
+# ________________________________________________________________________________
+# Operações
+
 def sorted_files(path: Path, pattern: str) -> list[Path]:
 	files = list(path.glob(pattern))
 	return sorted(files, key=lambda p: extract_year(p.name))
 
 
 def run(config: Config) -> None:
-	base = config.base_variaveis
-	out = config.out_dir
+	base = config.base
+	out = config.out
 	out.mkdir(parents=True, exist_ok=True)
 
+	# Extração: criação dos CSVs individuais
 	files_ano = sorted_files(base / "Ano Diagnóstico" / "Dados", "AnoDiagnostico-*.csv")
 	files_esc = sorted_files(base / "Escolaridade" / "Dados", "Escolaridade-*.csv")
 	files_faixa = sorted_files(base / "Faixa Etária" / "Dados", "Faixa-Etaria-*.csv")
@@ -245,10 +262,13 @@ def run(config: Config) -> None:
 	if not files_ano or not files_esc or not files_faixa or not files_raca:
 		raise FileNotFoundError("Arquivos de entrada nao encontrados em uma ou mais pastas de Casos.")
 
+	# Tratamento: cada parte separada
 	ano_diag = aggregate_ano_diagnostico(files_ano)
 	esc = aggregate_wide_by_year(files_esc, normalize_categoria_escolaridade)
 	faixa = aggregate_wide_by_year(files_faixa, lambda c: c, faixa_mode=True)
 	raca = aggregate_wide_by_year(files_raca, normalize_categoria_raca)
+
+	# Tratamento: união das tabelas
 	tabela = build_tabela_incidencia(ano_diag, esc, faixa, raca)
 
 	ano_diag.to_csv(out / "incidencia _ano_diagnostico.csv", index=False)
@@ -284,4 +304,4 @@ def parse_args() -> argparse.Namespace:
 
 if __name__ == "__main__":
 	args = parse_args()
-	run(Config(base_variaveis=args.base_variaveis, out_dir=args.out_dir))
+	run(Config(base=args.base_variaveis, out=args.out_dir))

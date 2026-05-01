@@ -1,18 +1,16 @@
-
-# pyright: reportUnknownMemberType=false
-
 import re
 import unicodedata
 from pathlib import Path
 
 import pandas as pd
 
-DADOS_DIR = Path("/home/anna/tcc/Variáveis/Mamografia/Dados")
-SAIDA_DIR = Path("/home/anna/tcc/Tratamento/Mamografia")
-SAIDA_ARQUIVO = SAIDA_DIR / "tabela_mamografia.csv"
+ROOT = Path("/home/anna/tcc/Tratamento/Mamografia")
+ENTRADA = Path("/home/anna/tcc/Variáveis/Mamografia/Dados")
+OUTPUT = ROOT / "tabela_mamografia.csv"
+MUNICIPIOS = Path("/home/anna/tcc/Tratamento/Municípios/tabela_municipios_regionais.csv")
 
 
-FAIXAS_DESEJADAS: list[tuple[str, list[str]]] = [
+FAIXAS: list[tuple[str, list[str]]] = [
     ("0-9", ["ate 9"]),
     ("10-19", ["entre 10 a 14", "entre 15 a 19"]),
     ("20-29", ["entre 20 a 24", "entre 25 a 29"]),
@@ -22,6 +20,10 @@ FAIXAS_DESEJADAS: list[tuple[str, list[str]]] = [
     ("60-69", ["entre 60 a 64", "entre 65 a 69"]),
     ("70+", ["entre 70 a 74", "entre 75 a 79", "acima de 79"]),
 ]
+
+
+# ________________________________________________________________________________
+# Texto
 
 
 def remover_acentos(texto: str) -> str:
@@ -55,7 +57,6 @@ def extrair_codigo_municipio(valor: object) -> tuple[str | None, str | None]:
         return None, None
 
     texto = valor.strip().strip("\ufeff")
-    # aceita até 7 dígitos e padroniza depois para 7 dígitos IBGE
     m = re.match(r"\s*(\d{1,7})\s+(.*)$", texto)
     if not m:
         return None, None
@@ -65,34 +66,35 @@ def extrair_codigo_municipio(valor: object) -> tuple[str | None, str | None]:
     return codigo, municipio
 
 
+
+# ________________________________________________________________________________
+# Tratamento
+
 def carregar_por_ano(arquivo: Path) -> pd.DataFrame:
     ano = extrair_ano_do_nome_arquivo(arquivo)
-    df = pd.read_csv(
+    tabela = pd.read_csv(
         arquivo,
         sep=";",
         encoding="latin1",
         dtype=str,
     )
-    df.columns = df.columns.str.strip()
+    tabela.columns = tabela.columns.str.strip()
 
-    coluna_municipio = df.columns[0]
-    extraido = df[coluna_municipio].map(extrair_codigo_municipio)
-    df[["codigo", "municipio_raw"]] = pd.DataFrame(extraido.tolist(), index=df.index)
-    df = df.dropna(subset=["codigo", "municipio_raw"]).copy()
+    coluna_municipio = tabela.columns[0]
+    extraido = tabela[coluna_municipio].map(extrair_codigo_municipio)
+    tabela[["codigo", "municipio_raw"]] = pd.DataFrame(extraido.tolist(), index=tabela.index)
+    tabela = tabela.dropna(subset=["codigo", "municipio_raw"]).copy()
 
-    df["codigo"] = df["codigo"].astype(str).str.strip()
-    # Garantir que o código IBGE tenha 7 dígitos (com zeros à esquerda se necessário)
-    df["codigo"] = df["codigo"].str.zfill(7)
+    tabela["codigo"] = tabela["codigo"].astype(str).str.strip().str.zfill(7)
 
-    df["municipios"] = df["municipio_raw"].map(normalizar_municipio)
-    df = df.drop(columns=["municipio_raw"])
+    tabela["municipios"] = tabela["municipio_raw"].map(normalizar_municipio)
+    tabela = tabela.drop(columns=["municipio_raw"])
 
-    # Normaliza nomes de colunas e soma as faixas etárias desejadas.
-    mapa_colunas: dict[str, str] = {normalizar_coluna(c): c for c in df.columns}
+    mapa_colunas: dict[str, str] = {normalizar_coluna(c): c for c in tabela.columns}
 
-    saida = df[["codigo", "municipios"]].copy()
+    saida = tabela[["codigo", "municipios"]].copy()
 
-    for faixa, padroes in FAIXAS_DESEJADAS:
+    for faixa, padroes in FAIXAS:
         colunas_origem: list[str] = []
         for p in padroes:
             for chave_norm, col_original in mapa_colunas.items():
@@ -105,30 +107,32 @@ def carregar_por_ano(arquivo: Path) -> pd.DataFrame:
             continue
 
         valores = (
-            df[colunas_origem]
+            tabela[colunas_origem]
             .apply(lambda s: pd.to_numeric(s, errors="coerce"), axis=0)
             .fillna(0)
             .sum(axis=1)
         )
         saida[faixa] = valores.astype(int)
 
-    # Caso algum município apareça duplicado, soma.
-    colunas_faixas = [f for f, _ in FAIXAS_DESEJADAS]
+    colunas_faixas = [f for f, _ in FAIXAS]
     saida = (
         saida.groupby(["codigo", "municipios"], as_index=False)[colunas_faixas]
         .sum()
         .reset_index(drop=True)
     )
 
-    # Renomeia colunas com prefixo do ano.
     saida = saida.rename(columns={c: f"{ano}_{c}" for c in colunas_faixas})
     return saida
 
 
+
+# ________________________________________________________________________________
+# Criação de colunas
+
 def gerar_tabela() -> pd.DataFrame:
-    arquivos = sorted(DADOS_DIR.glob("mamografia_*.csv"))
+    arquivos = sorted(ENTRADA.glob("mamografia_*.csv"))
     if not arquivos:
-        raise FileNotFoundError(f"Nenhum arquivo encontrado em {DADOS_DIR}")
+        raise FileNotFoundError(f"Nenhum arquivo encontrado em {ENTRADA}")
 
     tabela: pd.DataFrame | None = None
     for arquivo in arquivos:
@@ -139,15 +143,13 @@ def gerar_tabela() -> pd.DataFrame:
 
         tabela = tabela.merge(df_ano, on=["codigo"], how="outer", suffixes=("", "_dup"))
 
-        # Mantém o município (normalizado) preferindo o já existente.
         if "municipios_dup" in tabela.columns:
             tabela["municipios"] = tabela["municipios"].fillna(tabela["municipios_dup"])
             tabela = tabela.drop(columns=["municipios_dup"])
 
     assert tabela is not None
 
-    # Ordena colunas: municipios, codigo, depois ano/faixa em ordem.
-    ordem_faixas = [f for f, _ in FAIXAS_DESEJADAS]
+    ordem_faixas = [f for f, _ in FAIXAS]
     anos = sorted({int(c.split("_")[0]) for c in tabela.columns if re.match(r"^(19|20)\d{2}_", str(c))})
 
     colunas_ano = [
@@ -166,7 +168,6 @@ def gerar_tabela() -> pd.DataFrame:
             .astype(int)
         )
 
-    # Totais por ano (soma das faixas em décadas) e total geral.
     totais: dict[str, pd.Series] = {}
     colunas_total_ano: list[str] = []
     for ano in anos:
@@ -184,7 +185,6 @@ def gerar_tabela() -> pd.DataFrame:
 
     tabela = pd.concat([tabela, pd.DataFrame(totais)], axis=1)
 
-    # Ordena colunas: por ano (faixas + total_ano), e total ao final.
     colunas_ordenadas: list[str] = ["municipios", "codigo"]
     for ano in anos:
         cols = [f"{ano}_{faixa}" for faixa in ordem_faixas if f"{ano}_{faixa}" in tabela.columns]
@@ -197,19 +197,14 @@ def gerar_tabela() -> pd.DataFrame:
 
     tabela = tabela.sort_values(["codigo"]).reset_index(drop=True)
 
-    # Tentar mapear/normalizar o código para o IBGE 7 dígitos usando tabela de municípios
-    municipios_csv = Path(__file__).parents[1] / "Munic\u00edpios" / "tabela_municipios_regionais.csv"
     try:
-        df_mun = pd.read_csv(municipios_csv, dtype=str)
-        # coluna com nomes normalizados disponível como 'municipio_normalizado'
+        df_mun = pd.read_csv(MUNICIPIOS, dtype=str)
         if "municipio_normalizado" in df_mun.columns:
             mapa = df_mun.set_index("municipio_normalizado")["codigo_ibge"].to_dict()
             tabela["codigo_ibge_mapeado"] = tabela["municipios"].map(mapa)
 
-            # Substitui quando temos mapeamento por nome
-            tabela["codigo"] = tabela["codigo_ibge_mapeado"].fillna(tabela["codigo"])  # prefere mapeamento
+            tabela["codigo"] = tabela["codigo_ibge_mapeado"].fillna(tabela["codigo"])
 
-            # Fallback: para códigos menores que 7 dígitos, tenta encontrar por sufixo único
             mask_short = tabela["codigo"].notna() & (tabela["codigo"].str.len() < 7)
             if mask_short.any():
                 cods = df_mun["codigo_ibge"].astype(str)
@@ -226,18 +221,21 @@ def gerar_tabela() -> pd.DataFrame:
 
             tabela = tabela.drop(columns=[c for c in ["codigo_ibge_mapeado"] if c in tabela.columns])
     except FileNotFoundError:
-        # se não houver a tabela de municípios, mantemos o código gerado
         pass
 
     tabela = tabela.rename(columns={"municipios": "Municípios", "codigo": "Código"})
     return tabela
 
 
+
+# ________________________________________________________________________________
+# Operações
+
 def main() -> None:
-    SAIDA_DIR.mkdir(parents=True, exist_ok=True)
+    ROOT.mkdir(parents=True, exist_ok=True)
     df = gerar_tabela()
-    df.to_csv(SAIDA_ARQUIVO, index=False, encoding="utf-8-sig")
-    print(f"Arquivo gerado: {SAIDA_ARQUIVO} (linhas={len(df)}, colunas={len(df.columns)})")
+    df.to_csv(OUTPUT, index=False, encoding="utf-8-sig")
+    print(f"Arquivo gerado: {OUTPUT} (linhas={len(df)}, colunas={len(df.columns)})")
 
 
 if __name__ == "__main__":

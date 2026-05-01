@@ -22,11 +22,18 @@ from webdriver_manager.chrome import ChromeDriverManager
 import requests
 
 
+# ________________________________________________________________________________
+# Extração: Configuração e variáveis
+
 URL = "https://tabnet.datasus.gov.br/cgi/dhdat.exe?siscan/mamografia_atendmg.def"
 
 DEFAULT_DOWNLOAD_DIR = os.path.expanduser("~/Downloads")
 DEFAULT_OUTPUT_DIR = "/home/anna/tcc/Variáveis/Mamografia/Dados"
 
+ANOS_PADRAO = list(range(date.today().year - 1, 2012, -1))
+
+# ________________________________________________________________________________
+# Extração: Funções auxiliares
 
 def _ensure_dir(path: str) -> None:
     os.makedirs(path, exist_ok=True)
@@ -62,6 +69,7 @@ def _build_driver(download_dir: str, headless: bool) -> webdriver.Chrome:
 
 
 def _set_select_by_visible_text(driver: webdriver.Chrome, select_el, text: str) -> None:
+    # Executa código JavaScript no navegador para selecionar uma opção pelo texto visível
     ok = driver.execute_script(
         """
         const sel = arguments[0];
@@ -106,7 +114,6 @@ def _safe_click(driver: webdriver.Chrome, el) -> None:
 
 
 def _scroll_to_bottom(driver: webdriver.Chrome, steps: int = 10, pause_s: float = 0.5) -> None:
-    """Rola a página gradualmente até o fim."""
     for i in range(1, steps + 1):
         driver.execute_script(
             f"window.scrollTo(0, document.body.scrollHeight * {i / steps});"
@@ -117,30 +124,19 @@ def _scroll_to_bottom(driver: webdriver.Chrome, steps: int = 10, pause_s: float 
 
 
 def _switch_to_result_window(driver: webdriver.Chrome, original_handle: str, timeout_s: int = 60) -> bool:
-    """
-    Aguarda uma nova janela/aba abrir e troca para ela.
-    O TABNET abre o relatório em uma nova janela ao clicar em 'Mostra'.
-    Retorna True se trocou de janela, False se ficou na mesma.
-    """
     deadline = time.time() + timeout_s
     while time.time() < deadline:
         handles = driver.window_handles
         new_handles = [h for h in handles if h != original_handle]
         if new_handles:
             driver.switch_to.window(new_handles[-1])
-            print(f"  Nova janela detectada: {driver.current_url}")
             return True
         time.sleep(0.5)
 
-    print("  Nenhuma nova janela — o resultado pode estar na mesma página.")
     return False
 
 
 def _find_csv_href(driver: webdriver.Chrome) -> str:
-    """
-    Tenta múltiplas estratégias para encontrar o href do link CSV.
-    Imprime todos os links para diagnóstico se falhar.
-    """
     strategies = [
         (By.XPATH,        "//a[normalize-space(text())='Salva como CSV']"),
         (By.XPATH,        "//a[contains(text(),'CSV') and contains(@href,'.csv')]"),
@@ -157,12 +153,10 @@ def _find_csv_href(driver: webdriver.Chrome) -> str:
             )
             href = el.get_attribute("href")
             if href:
-                print(f"  Link CSV encontrado com: {selector}")
                 return href
         except TimeoutException:
             continue
 
-    # Fallback via JavaScript
     href = driver.execute_script(
         """
         for (const a of document.querySelectorAll('a')) {
@@ -176,26 +170,14 @@ def _find_csv_href(driver: webdriver.Chrome) -> str:
         """
     )
     if href:
-        print(f"  Link CSV encontrado via JS: {href}")
         return href
 
-    # Debug: lista todos os links presentes
-    all_links = driver.execute_script(
-        "return Array.from(document.querySelectorAll('a')).map(a => ({text: a.textContent.trim().slice(0,80), href: a.href}));"
-    )
-    print("  === Diagnóstico: links encontrados na página ===")
-    for lnk in all_links:
-        if lnk["href"]:
-            print(f"    '{lnk['text']}'  →  {lnk['href']}")
-
     raise NoSuchElementException(
-        "Não foi possível encontrar o link 'Salva como CSV' na página. "
-        "Veja o diagnóstico acima."
+        "Link 'Salva como CSV' não encontrado"
     )
 
 
 def _download_with_requests(driver: webdriver.Chrome, url: str, dest_path: str) -> None:
-    """Baixa o arquivo usando requests com os cookies da sessão do browser."""
     _ensure_dir(os.path.dirname(dest_path))
 
     session = requests.Session()
@@ -212,14 +194,12 @@ def _download_with_requests(driver: webdriver.Chrome, url: str, dest_path: str) 
         "Referer": driver.current_url,
     }
 
-    print(f"  Baixando: {url}")
     with session.get(url, headers=headers, stream=True, timeout=180) as resp:
         resp.raise_for_status()
         with open(dest_path, "wb") as f:
             for chunk in resp.iter_content(chunk_size=64 * 1024):
                 if chunk:
                     f.write(chunk)
-    print(f"  Concluído: {os.path.getsize(dest_path)} bytes")
 
 
 def _move_overwrite(src: str, dst: str) -> None:
@@ -236,72 +216,51 @@ def baixar_csv_por_ano(
     output_dir: str,
     wait_s: int = 60,
 ) -> str:
-    print(f"\n{'='*50}")
-    print(f"Processando ano: {ano}")
-    print(f"{'='*50}")
-
     driver.get(URL)
     wait = WebDriverWait(driver, wait_s)
 
-    # Guarda handle da janela original ANTES de clicar Mostra
     original_handle = driver.current_window_handle
-    print(f"  Janela original: {original_handle}")
 
-    # ── Configura os selects ──
-    print("Configurando: Linha = Munic.da un.saúde")
+    # ________________________________________________________________________________
+    # Extração: Preenchimento dos filtros
+
     _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "L"))), "Munic.da un.saúde")
-
-    print("Configurando: Coluna = Faixa etária")
     _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "C"))), "Faixa etária")
-
-    print("Configurando: Medida = Exames")
     _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "I"))), "Exames")
-
-    print(f"Configurando: Período = {ano}")
     _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "A"))), str(ano))
 
-    print("Configurando: Sexo = Feminino")
     try:
         _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "S8"))), "Feminino")
-    except (TimeoutException, NoSuchElementException) as e:
-        print(f"  Aviso: {e}")
+    except (TimeoutException, NoSuchElementException):
+        pass
 
-    print("Configurando: Município = Todas as categorias")
     try:
         _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "S1"))), "Todas as categorias")
-    except (TimeoutException, NoSuchElementException) as e:
-        print(f"  Aviso: {e}")
+    except (TimeoutException, NoSuchElementException):
+        pass
 
-    print("Configurando: Faixa etária (filtro) = Todas as categorias")
     try:
         _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "S7"))), "Todas as categorias")
-    except (TimeoutException, NoSuchElementException) as e:
-        print(f"  Aviso: {e}")
+    except (TimeoutException, NoSuchElementException):
+        pass
 
-    # ── Clica em Mostra ──
-    print("Clicando em 'Mostra'...")
+    # ________________________________________________________________________________
+    # Extração: Execução e download
+
     mostra_btn = wait.until(
         EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="button"][value="Mostra"]'))
     )
     _safe_click(driver, mostra_btn)
 
-    # ── Troca para a nova janela do relatório ──
-    print("Aguardando janela do relatório...")
     switched = _switch_to_result_window(driver, original_handle, timeout_s=60)
 
-    # Se não abriu nova janela, aguarda carregar na mesma página
     if not switched:
         time.sleep(5)
 
-    # ── Rola até o fim para revelar os links de exportação ──
-    print("Rolando página para revelar links de download...")
     _scroll_to_bottom(driver, steps=10, pause_s=0.5)
     time.sleep(2)
 
-    # ── Encontra e baixa o CSV ──
-    print("Procurando link 'Salva como CSV'...")
     csv_href = _find_csv_href(driver)
-
     csv_url = urljoin(driver.current_url, csv_href)
     parsed = urlparse(csv_url)
     if not parsed.scheme or not parsed.netloc:
@@ -313,16 +272,13 @@ def baixar_csv_por_ano(
 
     out_path = os.path.join(os.path.abspath(output_dir), f"mamografia_{ano}.csv")
     _move_overwrite(temp_path, out_path)
-    print(f"Arquivo salvo: {out_path}")
 
-    # ── Fecha janela do relatório e volta para a principal ──
     if switched:
         try:
             driver.close()
             driver.switch_to.window(original_handle)
-            print("  Janela do relatório fechada.")
-        except Exception as e:
-            print(f"  Aviso ao fechar janela: {e}")
+        except Exception:
+            pass
 
     return out_path
 
@@ -335,13 +291,14 @@ def _parse_years(
     if args_years:
         return [int(y) for y in args_years]
     if start_year is None and end_year is None:
-        current_year = date.today().year
-        return list(range(current_year - 1, 2012, -1))
+        return ANOS_PADRAO
     if start_year is None or end_year is None:
         raise ValueError("Use ambos --start-year e --end-year, ou apenas --years.")
     step = -1 if int(start_year) >= int(end_year) else 1
     return list(range(int(start_year), int(end_year) + step, step))
 
+# ________________________________________________________________________________
+# Extração: Operações principais
 
 def main() -> int:
     parser = argparse.ArgumentParser(
@@ -357,7 +314,6 @@ def main() -> int:
     args = parser.parse_args()
 
     years = _parse_years(args.years, args.start_year, args.end_year)
-    print(f"Anos a baixar: {years}")
     _ensure_dir(args.download_dir)
     _ensure_dir(args.output_dir)
 
@@ -366,18 +322,15 @@ def main() -> int:
     try:
         for year in years:
             try:
-                out = baixar_csv_por_ano(
+                baixar_csv_por_ano(
                     driver=driver,
                     ano=int(year),
                     download_dir=args.download_dir,
                     output_dir=args.output_dir,
                     wait_s=int(args.wait),
                 )
-                print(f"✓ {year}: {out}")
             except Exception as e:
-                print(f"✗ Erro no ano {year}: {e}")
                 errors.append((year, str(e)))
-                # Tenta recuperar a janela principal
                 try:
                     driver.switch_to.window(driver.window_handles[0])
                 except Exception:
@@ -386,12 +339,8 @@ def main() -> int:
         driver.quit()
 
     if errors:
-        print(f"\nErros em {len(errors)} ano(s):")
-        for yr, err in errors:
-            print(f"  {yr}: {err}")
         return 1
 
-    print("\nTodos os anos baixados com sucesso!")
     return 0
 
 

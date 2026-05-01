@@ -6,13 +6,13 @@ from pathlib import Path
 
 import pandas as pd
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-SOURCE_DIR = PROJECT_ROOT / "Variáveis" / "População - Faixa Etária"
-ARQUIVO_SAIDA = Path(__file__).with_name("tabela_populacao_faixa_etaria.csv")
-ARQUIVO_MUNICIPIOS = PROJECT_ROOT / "Tratamento" / "Municípios" / "municipios_regionais_normalizados.csv"
+ROOT = Path(__file__).resolve().parents[2]
+ENTRADA = ROOT / "Variáveis" / "População - Faixa Etária"
+SAIDA = Path(__file__).with_name("tabela_populacao_faixa_etaria.csv")
+MUNICIPIOS = ROOT / "Tratamento" / "Municípios" / "tabela_municipios_regionais.csv"
 
-KEY_COLUMNS = ["Sigla", "Código", "Município"]
-AGE_LABEL_ORDER = [
+CHAVES = ["Sigla", "Código", "Município"]
+FAIXAS = [
     "0 a 9",
     "10 a 19",
     "20 a 29",
@@ -23,7 +23,7 @@ AGE_LABEL_ORDER = [
     "70 anos ou mais",
 ]
 
-FAIXA_PADRAO = {
+FAIXA_SAIDA = {
     "0 a 9": "0-9",
     "10 a 19": "10-19",
     "20 a 29": "20-29",
@@ -33,6 +33,10 @@ FAIXA_PADRAO = {
     "60 a 69": "60-69",
     "70 anos ou mais": "70 ou mais",
 }
+
+
+# ________________________________________________________________________________
+# Texto
 
 def normalizar_texto(texto: str) -> str:
     texto = "" if pd.isna(texto) else str(texto).strip()
@@ -53,7 +57,10 @@ def normalizar_chave_municipio(texto: str) -> str:
     return aliases.get(chave, chave)
 
 
-def carregar_mapa_codigos(arquivo_municipios: Path = ARQUIVO_MUNICIPIOS) -> dict[str, str]:
+# ________________________________________________________________________________
+# Arquivos
+
+def carregar_mapa_codigos(arquivo_municipios: Path = MUNICIPIOS) -> dict[str, str]:
     if not arquivo_municipios.exists():
         raise FileNotFoundError(f"Arquivo de municípios não encontrado: {arquivo_municipios}")
 
@@ -88,10 +95,7 @@ def adicionar_coluna_codigo(df: pd.DataFrame, mapa_codigos: dict[str, str]) -> p
     )
 
     if sem_correspondencia:
-        print(
-            "[AVISO] Municípios sem correspondência de código "
-            f"({len(sem_correspondencia)}):"
-        )
+        print(f"[AVISO] Municípios sem correspondência de código ({len(sem_correspondencia)}):")
         for municipio in sem_correspondencia:
             print(f"  - {municipio}")
     else:
@@ -101,6 +105,11 @@ def adicionar_coluna_codigo(df: pd.DataFrame, mapa_codigos: dict[str, str]) -> p
     pos_municipio = list(df.columns).index("Município") + 1
     df.insert(pos_municipio, "CÓDIGO", codigos)
     return df
+
+
+# ________________________________________________________________________________
+# Tratamento
+
 
 def limpar_colunas(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
@@ -118,6 +127,10 @@ def extrair_ano_e_parte(caminho: Path) -> tuple[int, int]:
     ano = int(match.group(2))
     return ano, parte
 
+
+# ________________________________________________________________________________
+# Criação de colunas
+
 def faixa_decenal(nome_coluna: str) -> str | None:
     intervalo = re.search(r"pessoas (\d+) a (\d+) anos", nome_coluna)
     if intervalo:
@@ -132,24 +145,24 @@ def faixa_decenal(nome_coluna: str) -> str | None:
     return None
 
 def nome_coluna_saida(ano: int, faixa: str) -> str:
-    return f"{ano}_{FAIXA_PADRAO[faixa]}"
+    return f"{ano}_{FAIXA_SAIDA[faixa]}"
 
 def montar_tabela_ano(ano: int, arquivos_do_ano: dict[int, Path]) -> pd.DataFrame:
-    partes_faltantes = {1, 2} - set(arquivos_do_ano)
-    if partes_faltantes:
-        raise ValueError(f"Faltam arquivos do ano {ano}: {sorted(partes_faltantes)}")
+    faltando = {1, 2} - set(arquivos_do_ano)
+    if faltando:
+        raise ValueError(f"Faltam arquivos do ano {ano}: {sorted(faltando)}")
 
     df_1 = ler_arquivo_csv(arquivos_do_ano[1])
     df_2 = ler_arquivo_csv(arquivos_do_ano[2])
 
-    colunas_df_2 = [col for col in df_2.columns if col not in KEY_COLUMNS]
-    combinado = df_1.merge(df_2[KEY_COLUMNS + colunas_df_2], on=KEY_COLUMNS, how="inner")
+    colunas_parte2 = [col for col in df_2.columns if col not in CHAVES]
+    combinado = df_1.merge(df_2[CHAVES + colunas_parte2], on=CHAVES, how="inner")
 
-    resultado_ano = combinado[KEY_COLUMNS].copy()
-    for faixa in AGE_LABEL_ORDER:
+    resultado_ano = combinado[CHAVES].copy()
+    for faixa in FAIXAS:
         resultado_ano[faixa] = 0
 
-    colunas_populacao = [col for col in combinado.columns if col not in KEY_COLUMNS]
+    colunas_populacao = [col for col in combinado.columns if col not in CHAVES]
     for coluna in colunas_populacao:
         faixa = faixa_decenal(coluna)
         if faixa is None:
@@ -161,18 +174,22 @@ def montar_tabela_ano(ano: int, arquivos_do_ano: dict[int, Path]) -> pd.DataFram
         )
 
     resultado_ano = resultado_ano.rename(
-        columns={faixa: nome_coluna_saida(ano, faixa) for faixa in AGE_LABEL_ORDER}
+        columns={faixa: nome_coluna_saida(ano, faixa) for faixa in FAIXAS}
     )
     return resultado_ano
 
 
+# ________________________________________________________________________________
+# Operações
+
+
 def main() -> None:
-    source_files = sorted(SOURCE_DIR.glob("*.csv"))
-    if not source_files:
-        raise FileNotFoundError(f"Nenhum arquivo CSV encontrado em: {SOURCE_DIR}")
+    arquivos = sorted(ENTRADA.glob("*.csv"))
+    if not arquivos:
+        raise FileNotFoundError(f"Nenhum arquivo CSV encontrado em: {ENTRADA}")
 
     arquivos_por_ano: dict[int, dict[int, Path]] = {}
-    for arquivo in source_files:
+    for arquivo in arquivos:
         ano, parte = extrair_ano_e_parte(arquivo)
         arquivos_por_ano.setdefault(ano, {})[parte] = arquivo
 
@@ -183,36 +200,49 @@ def main() -> None:
 
     tabela_final = tabelas_por_ano[0].copy()
     for tabela_ano in tabelas_por_ano[1:]:
-        colunas_novas = [col for col in tabela_ano.columns if col not in KEY_COLUMNS]
+        colunas_novas = [col for col in tabela_ano.columns if col not in CHAVES]
         tabela_final = tabela_final.merge(
-            tabela_ano[KEY_COLUMNS + colunas_novas],
-            on=KEY_COLUMNS,
+            tabela_ano[CHAVES + colunas_novas],
+            on=CHAVES,
             how="outer",
         )
 
-    ordem_colunas = KEY_COLUMNS + [
+    ordem_colunas = CHAVES + [
         nome_coluna_saida(ano, faixa)
         for ano in sorted(arquivos_por_ano)
-        for faixa in AGE_LABEL_ORDER
+        for faixa in FAIXAS
     ]
 
     tabela_final = tabela_final[ordem_colunas].sort_values("Município").reset_index(drop=True)
     for coluna in tabela_final.columns:
-        if coluna not in KEY_COLUMNS:
+        if coluna not in CHAVES:
             tabela_final[coluna] = tabela_final[coluna].fillna(0).astype(int)
 
-    colunas_numericas = [coluna for coluna in tabela_final.columns if coluna not in KEY_COLUMNS]
-    tabela_final["TOTAL_POPULACAO"] = tabela_final[colunas_numericas].sum(axis=1).astype(int)
+    anos_ordenados = sorted(arquivos_por_ano)
+    for ano in anos_ordenados:
+        colunas_faixas_ano = [nome_coluna_saida(ano, faixa) for faixa in FAIXAS]
+        coluna_total_ano = f"TOTAL_{ano}"
+        tabela_final[coluna_total_ano] = tabela_final[colunas_faixas_ano].sum(axis=1).astype(int)
+
+    faixas_todas = [nome_coluna_saida(ano, faixa) for ano in anos_ordenados for faixa in FAIXAS]
+    totais_ano = [f"TOTAL_{ano}" for ano in anos_ordenados]
+    colunas_com_totais_ano: list[str] = list(CHAVES) + faixas_todas + totais_ano
+
+    tabela_final = tabela_final[colunas_com_totais_ano]
 
     tabela_final = tabela_final.drop(columns=["Sigla", "Código"])
     tabela_final["Município"] = tabela_final["Município"].map(normalizar_texto)
     mapa_codigos = carregar_mapa_codigos()
+
     tabela_final = adicionar_coluna_codigo(tabela_final, mapa_codigos=mapa_codigos)
+    if "CÓDIGO" in tabela_final.columns:
+        tabela_final["CÓDIGO"] = tabela_final["CÓDIGO"].astype(str).str.replace(r"\.0$", "", regex=True)
+        tabela_final = tabela_final.rename(columns={"CÓDIGO": "CÓDIGO IBGE"})
     tabela_final = tabela_final.rename(columns={"Município": "MUNICÍPIOS"})
 
-    tabela_final.to_csv(ARQUIVO_SAIDA, index=False, encoding="utf-8-sig")
-    print(f"Pasta de entrada: {SOURCE_DIR}")
-    print(f"CSV gerado em: {ARQUIVO_SAIDA}")
+    tabela_final.to_csv(SAIDA, index=False, encoding="utf-8-sig")
+    print(f"Pasta de entrada: {ENTRADA}")
+    print(f"CSV gerado em: {SAIDA}")
     print(f"Total de linhas: {len(tabela_final)}")
 
 

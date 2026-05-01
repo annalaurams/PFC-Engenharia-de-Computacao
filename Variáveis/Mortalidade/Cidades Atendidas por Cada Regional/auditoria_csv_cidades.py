@@ -93,7 +93,7 @@ def verificar_pastas_faltantes():
         for cidade in sorted(cidades_faltantes):
             print(f"   ✗ {cidade}")
     else:
-        print("✓ Todas as cidades esperadas possuem pasta correspondente!")
+        print("Todas as cidades esperadas possuem pasta correspondente!")
 
     print("=" * 80)
 

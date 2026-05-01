@@ -16,13 +16,15 @@ from selenium.common.exceptions import (
     TimeoutException,
 )
 
+# ________________________________________________________________________________
+# Configuração
+
 CIDADE = "Unaí"
 REGIONAL_SAUDE = "Unaí"
 UF = "MG"
 
 PERIODO = [
-           
-1981, 1984, 1987, 1988, 1989, 1990, 1993, 1994, 1996, 1997, 1998, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024
+    1981, 1984, 1987, 1988, 1989, 1990, 1993, 1994, 1996, 1997, 1998, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024
 ]
 
 DOWNLOADS_PATH = "/home/anna/Downloads"
@@ -31,19 +33,16 @@ PASTA_DESTINO_CIDADE = os.path.join(BASE_PROJECT_PATH, f"{CIDADE}-{UF}")
 os.makedirs(PASTA_DESTINO_CIDADE, exist_ok=True)
 
 URL = "https://www.inca.gov.br/MortalidadeWeb/pages/Modelo10/consultar.xhtml"
+MAX_TENTATIVAS = 3
 
+os.system("cls" if os.name == "nt" else "clear")
 
-def limpar_tela():
-    os.system("cls" if os.name == "nt" else "clear")
-
+# ________________________________________________________________________________
+# Utilidades
 
 def log_status(ano, mensagem, tipo="INFO"):
     cores = {"INFO": "34", "OK": "32", "ERRO": "31", "AVISO": "33"}
     print(f"\033[{cores.get(tipo, '37')}m[{tipo}] Ano {ano} | {mensagem}\033[0m")
-
-
-def log(msg):
-    print(f"[INFO] {msg}")
 
 
 def iniciar_driver():
@@ -78,10 +77,6 @@ def limpar_downloads_temp():
 
 
 def select_by_name(driver, name, value_or_text, by="value", timeout=15):
-    """
-    Localiza um <select> pelo atributo `name` e seleciona uma opção.
-    Usa By.VALUE por padrão; use by="text" para visible text.
-    """
     wait = WebDriverWait(driver, timeout)
     element = wait.until(
         EC.presence_of_element_located((By.CSS_SELECTOR, f'select[name="{name}"]'))
@@ -94,9 +89,6 @@ def select_by_name(driver, name, value_or_text, by="value", timeout=15):
 
 
 def select_by_id(driver, element_id, value_or_text, by="value", timeout=15):
-    """
-    Localiza um <select> pelo `id` e seleciona uma opção.
-    """
     wait = WebDriverWait(driver, timeout)
     element = wait.until(
         EC.presence_of_element_located((By.ID, element_id))
@@ -109,14 +101,12 @@ def select_by_id(driver, element_id, value_or_text, by="value", timeout=15):
 
 
 def aguardar_ajax(driver, timeout=10):
-    """Aguarda o spinner de AJAX sumir (ajax-loader.gif fica display:none)."""
     try:
         WebDriverWait(driver, timeout).until(
             lambda d: d.execute_script(
                 "return document.readyState === 'complete'"
             )
         )
-        # Aguarda o loader do PrimeFaces sumir, se existir
         WebDriverWait(driver, timeout).until(
             lambda d: all(
                 not el.is_displayed()
@@ -124,7 +114,7 @@ def aguardar_ajax(driver, timeout=10):
             )
         )
     except Exception:
-        pass  # Segue em frente mesmo se timeout
+        pass
 
 def verificar_erro_campos_obrigatorios(driver):
     try:
@@ -149,43 +139,32 @@ def verificar_sem_resultado(driver):
         pass
     return False
 
+
 def aplicar_filtros(driver, wait):
-    """Aplica todos os filtros fixos (não mudam a cada ano)."""
     try:
-        # ── Sexo ──────────────────────────────────────────────────────────────
-        log("Selecionando sexo: Feminino")
         select_by_id(driver, "formModeloTabulador:comboSexo", "2")
         time.sleep(2)
 
-        # ── CID ───────────────────────────────────────────────────────────────
-        log("Selecionando CID: C50 - MAMA")
         wait.until(
             EC.element_to_be_clickable((By.XPATH, "//li[contains(text(),'C50 - MAMA')]"))
         ).click()
         time.sleep(1)
 
-        log("Adicionando CID à seleção")
         driver.find_element(By.CLASS_NAME, "ui-picklist-button-add").click()
         time.sleep(2)
 
-        # ── Nível / Região / Estado / Regional / Município ────────────────────
-        log("Selecionando nível: Municípios")
         select_by_id(driver, "formModeloTabulador:nivelLocalidade", "5")
         time.sleep(3)
 
-        log("Selecionando região: Sudeste")
         select_by_id(driver, "formModeloTabulador:regiao", "3")
         time.sleep(3)
 
-        log("Selecionando estado: Minas Gerais")
         select_by_id(driver, "formModeloTabulador:estado", "17")
         time.sleep(3)
 
-        log(f"Selecionando Regional de Saúde: {REGIONAL_SAUDE}")
         select_by_id(driver, "formModeloTabulador:regionalSaude", REGIONAL_SAUDE, by="text")
         time.sleep(4)
 
-        log(f"Selecionando município: {CIDADE}")
         wait.until(EC.presence_of_element_located((By.ID, "formModeloTabulador:localidades")))
         select_municipio = Select(driver.find_element(By.ID, "formModeloTabulador:localidades"))
 
@@ -194,58 +173,49 @@ def aplicar_filtros(driver, wait):
             if CIDADE in opcao.text and f"- {UF}" in opcao.text:
                 select_municipio.select_by_visible_text(opcao.text)
                 municipio_encontrado = True
-                log(f"Município encontrado: {opcao.text.strip()}")
                 break
 
         if not municipio_encontrado:
             print(f"\n[ERRO] Município '{CIDADE}' não encontrado na lista!")
-            for opcao in select_municipio.options:
-                print(f"  - {opcao.text.strip()}")
             return False
 
         time.sleep(2)
 
-        log("Clicando em 'Adicionar' para mover o município para selecionados")
         driver.find_element(By.ID, "formModeloTabulador:add").click()
         time.sleep(3)
 
-        # ── Linha: Localização primária do tumor ──────────────────────────────
-        # CORREÇÃO: o name real é formModeloTabulador:j_idt155 (não j_idt153)
-        log("Selecionando linha: Localização primária do tumor")
         select_by_name(driver, "formModeloTabulador:j_idt155", "2")
         time.sleep(1)
         aguardar_ajax(driver)
         time.sleep(2)
 
-        # ── Coluna: Faixa etária ──────────────────────────────────────────────
-        log("Selecionando coluna: Faixa etária")
         select_by_id(driver, "formModeloTabulador:opcaoColuna", "2")
         aguardar_ajax(driver, timeout=15)
         time.sleep(3)
 
-        # ── Faixa etária: 0 até 99+ ───────────────────────────────────────────
-        # Quando coluna = Faixa etária, os campos são idadeFaixaIni / idadeFaixaFim
-        log("Selecionando faixa etária: 0 até 99+")
         try:
             select_by_id(driver, "formModeloTabulador:idadeFaixaIni", "0")
         except Exception:
-            log("[AVISO] Campo idadeFaixaIni não encontrado — pulando")
+            pass
 
         try:
             select_by_id(driver, "formModeloTabulador:idadeFaixaFim", "999")
         except Exception:
-            log("[AVISO] Campo idadeFaixaFim não encontrado — pulando")
+            pass
 
         time.sleep(1)
 
         print("\n" + "=" * 80)
-        print("[✔] Todos os filtros aplicados com sucesso!".center(80))
+        print("[✔] Filtros aplicados com sucesso!".center(80))
         print("=" * 80)
         return True
 
     except Exception as e:
         print(f"\n[ERRO] Falha ao aplicar filtros: {e}")
         return False
+
+# ________________________________________________________________________________
+# Extração: Processamento e Download
 
 
 def clicar_ok_com_retry(driver, wait, max_tentativas=5):
@@ -271,7 +241,6 @@ def clicar_ok_com_retry(driver, wait, max_tentativas=5):
     for tentativa in range(max_tentativas):
         for i, estrategia in enumerate(estrategias):
             try:
-                log(f"OK — estratégia {i+1} (tentativa {tentativa+1}/{max_tentativas})")
                 btn = estrategia()
                 driver.execute_script(
                     "arguments[0].scrollIntoView({behavior:'smooth',block:'center'});", btn
@@ -281,22 +250,17 @@ def clicar_ok_com_retry(driver, wait, max_tentativas=5):
                     btn.click()
                 except ElementClickInterceptedException:
                     driver.execute_script("arguments[0].click();", btn)
-                log("✓ Botão OK clicado")
                 return True
-            except Exception as e:
-                log(f"  estratégia {i+1} falhou: {str(e)[:60]}")
+            except Exception:
                 continue
 
         if tentativa < max_tentativas - 1:
-            log("Aguardando antes de nova tentativa no OK...")
             time.sleep(3)
 
-    log("ERRO: Não foi possível clicar no botão OK")
     return False
 
 def clicar_gerar_csv_com_retry(driver, wait, max_tentativas=5):
     estrategias = [
-        # ID exato obtido do HTML fornecido
         lambda: driver.find_element(By.ID, "formModeloTabuladorLinks:j_idt424"),
         lambda: driver.find_element(
             By.XPATH,
@@ -316,7 +280,6 @@ def clicar_gerar_csv_com_retry(driver, wait, max_tentativas=5):
     for tentativa in range(max_tentativas):
         for i, estrategia in enumerate(estrategias):
             try:
-                log(f"CSV — estratégia {i+1} (tentativa {tentativa+1}/{max_tentativas})")
                 btn = estrategia()
                 driver.execute_script(
                     "arguments[0].scrollIntoView({behavior:'smooth',block:'center'});", btn
@@ -326,18 +289,17 @@ def clicar_gerar_csv_com_retry(driver, wait, max_tentativas=5):
                     btn.click()
                 except ElementClickInterceptedException:
                     driver.execute_script("arguments[0].click();", btn)
-                log("✓ Botão Gerar CSV clicado")
                 return True
-            except Exception as e:
-                log(f"  estratégia {i+1} falhou: {str(e)[:60]}")
+            except Exception:
                 continue
 
         if tentativa < max_tentativas - 1:
-            log("Aguardando antes de nova tentativa no CSV...")
             time.sleep(3)
 
-    log("ERRO: Não foi possível clicar no botão Gerar CSV")
     return False
+
+# ________________________________________________________________________________
+# Operações Principais
 
 
 def executar():
@@ -345,7 +307,6 @@ def executar():
     wait = WebDriverWait(driver, 60)
     driver.get(URL)
 
-    limpar_tela()
     print("\033[1;36m" + "=" * 80)
     print(f"CIDADE: {CIDADE}-{UF} | REGIONAL: {REGIONAL_SAUDE}".center(80))
     print(f"ANOS A EXTRAIR: {PERIODO}".center(80))
@@ -362,7 +323,6 @@ def executar():
     anos_sem_dados = []
     indice_ano = 0
     tentativas_erro = 0
-    MAX_TENTATIVAS = 3
 
     while indice_ano < len(PERIODO):
         ano = PERIODO[indice_ano]
@@ -387,7 +347,6 @@ def executar():
             limpar_downloads_temp()
             log_status(ano, "Selecionando período", "INFO")
 
-            # ── Período ───────────────────────────────────────────────────────
             wait.until(
                 EC.presence_of_element_located((By.ID, "formModeloTabulador:anoInicio"))
             )
@@ -399,14 +358,12 @@ def executar():
             ).select_by_value(str(ano))
             time.sleep(1)
 
-            # ── Clicar OK ─────────────────────────────────────────────────────
             log_status(ano, "Processando consulta...", "INFO")
             if not clicar_ok_com_retry(driver, wait):
                 raise Exception("Falha ao clicar no botão OK após múltiplas tentativas")
 
             time.sleep(20)
 
-            # ── Verificar erro de campos obrigatórios ─────────────────────────
             if verificar_erro_campos_obrigatorios(driver):
                 log_status(ano, "⚠ Erro de campos obrigatórios! Reconfigurando...", "ERRO")
                 driver.refresh()
@@ -418,7 +375,6 @@ def executar():
                 tentativas_erro = 0
                 continue
 
-            # ── Verificar sem resultado ───────────────────────────────────────
             if verificar_sem_resultado(driver):
                 log_status(ano, "⊘ Sem dados (1ª verificação). Tentando novamente...", "AVISO")
                 if not clicar_ok_com_retry(driver, wait):
@@ -443,12 +399,10 @@ def executar():
                     tentativas_erro = 0
                     continue
 
-            # ── Gerar CSV ─────────────────────────────────────────────────────
             log_status(ano, "Gerando arquivo CSV...", "INFO")
             if not clicar_gerar_csv_com_retry(driver, wait):
                 raise Exception("Falha ao clicar no botão Gerar CSV após múltiplas tentativas")
 
-            # ── Aguardar download ─────────────────────────────────────────────
             arquivo_encontrado = None
             for _ in range(40):
                 arquivos = glob.glob(os.path.join(DOWNLOADS_PATH, "ModeloTabulador_*.csv"))
@@ -529,7 +483,6 @@ def executar():
     except Exception:
         pass
 
-    # ── Relatório final ───────────────────────────────────────────────────────
     print("\n\033[1;32m" + "=" * 80)
     print("[✓] EXTRAÇÃO FINALIZADA!".center(80))
     print("=" * 80 + "\033[0m")
