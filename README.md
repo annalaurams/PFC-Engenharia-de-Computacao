@@ -1,64 +1,70 @@
-# PFC I - Base Integrada para Análise Oncológica em Minas Gerais
+# Projeto Final de Curso I
+## APLICAÇÃO DE TÉCNICAS COMPUTACIONAIS E MINERAÇÃO DE DADOS EM SAÚDE PÚBLICA: Uma análise epidemiológica do câncer de mama em Minas Gerais 
 
-Base de dados integrada para análise de câncer de mama feminino em Minas Gerais. O projeto consolida informações de múltiplas fontes públicas com padronização territorial e temporal, permitindo análises estatísticas, cruzamentos entre variáveis e geração de evidências.
+Este trabalho investiga como variáveis socioeconônomicas, demográficas e de acesso a saúde relacionadas ao câncer de mama se distribuem nos municípios de MG e quais delas exercem maior influência sobre a
+incidência da doença.
 
 ## Sobre o projeto
-
-Este TCC organiza dados demográficos, assistenciais, territoriais e socioeconômicos em uma base analítica consistente para estudar câncer de mama em MG.
-
-**Tema**: câncer de mama feminino | **Território**: Minas Gerais | **Unidade**: município | **Período**: histórico (1985-2025)
 
 ## 📁 Estrutura do repositório
 
 ```
 PFC-I/
-├── Variáveis/              # Dados brutos e semibrutos por domínio
+├── Variáveis/              # Extração
 │   ├── Casos/
+│   ├── ├── Ano Diagnóstico
+│   ├── ├── Faixa Etária
+│   ├── ├── Escolaridade
+│   ├── ├── Raça e Cor
 │   ├── Hospitais Habilitados/
-│   ├── Índices IFDM/
 │   ├── Mamografia/
 │   ├── Mortalidade/
 │   ├── Municípios/
 │   ├── População - Faixa Etária/
-│   ├── Socioeconômica/
 │   └── README.md
 │
-├── Tratamento/             # Scripts e saídas processadas
+├── Tratamento/             # Pré Processamento
 │   ├── Casos/
-│   ├── Hospitais/
-│   ├── Índices/
+│   ├── ├── Ano Diagnóstico
+│   ├── ├── Faixa Etária
+│   ├── ├── Escolaridade
+│   ├── ├── Raça e Cor
+│   ├── Hospitais Habilitados/
 │   ├── Mamografia/
 │   ├── Mortalidade/
 │   ├── Municípios/
 │   ├── População - Faixa Etária/
-│   ├── Socioeconômico/
 │   └── README.md
 │
-├── Resultados/             # Análises e notebooks
+├── Resultados/             # Resultados da Análise Exploratória
 │   ├── casos.ipynb
 │   ├── mamografia.ipynb
 │   ├── mortalidade.ipynb
 │   ├── hospitais_habilitados.ipynb
 │   ├── municípios.ipynb
-│   ├── mortalidade.ipynb
 │   └── README.md
 │
 ├── src/tcc/                # Pacote Python do projeto
 ├── pyproject.toml          # Dependências e configuração
 └── README.md
 ```
+## 🔗 Fluxo integrado
 
-## 🔄 Fluxo de trabalho
-
-1. **Variáveis/** → Dados brutos coletados de fontes públicas (INCA, FIRJAN, bases administrativas)
-2. **Tratamento/** → Limpeza, padronização territorial e consolidação em tabelas analíticas
-3. **Resultados/** → Exploração, cruzamentos e análise das bases tratadas
+```
+Variáveis/ (dados brutos)
+    ↓
+Tratamento/ (processa e padroniza)
+    ↓
+Resultados/ (analisa e cruza)
+    ↓
+Monografia/ (incorpora evidências)
+```
 
 ## 📚 Documentação
 
-- [Variáveis/README.md](Variáveis/README.md) — Origens dos dados e estrutura de aquisição
-- [Tratamento/README.md](Tratamento/README.md) — Processamento e como rodar os scripts
-- [Resultados/README.md](Resultados/README.md) — Notebooks de análise
+- [Variáveis/README.md](Variáveis/README.md) — Extração e obtenção dos dados brutos
+- [Tratamento/README.md](Tratamento/README.md) — Pré processamento e obtenção dos dados estruturados
+- [Resultados/README.md](Resultados/README.md) — Resultados da Análise Exploratória
 
 ## 🛠️ Tecnologias e dependências
 
@@ -81,22 +87,13 @@ PFC-I/
 ```bash
 # Com uv instalado
 uv sync
-
-# Ou com pip tradicional
-pip install -e .
 ```
 
 ### Processar os dados (Tratamento/)
 
 ```bash
 # Executar um script específico
-python Tratamento/Casos/main.py
-
-# Ou executar todos em sequência
-cd Tratamento
-for dir in Casos Hospitais Índices Mamografia Mortalidade Municípios "População - Faixa Etária" Socioeconômico; do
-  python "$dir/main.py" && echo "✓ $dir"
-done
+python3 Tratamento/Casos/main.py
 ```
 
 ### Análise em Jupyter (Resultados/)
@@ -104,14 +101,6 @@ done
 ```bash
 # Abrir e executar notebooks
 jupyter notebook Resultados/
-
-# Ou usar VS Code
-code Resultados/
 ```
 
-## 📌 Notas importantes
-
-- Sempre execute **Tratamento/** após atualizar **Variáveis/**
-- Verifique a consistência de nomes de municípios antes de novos cruzamentos
-- Os notebooks em **Resultados/** consomem tabelas processadas em **Tratamento/**
 
