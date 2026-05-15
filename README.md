@@ -1,10 +1,13 @@
-# Projeto Final de Curso I
-## APLICAÇÃO DE TÉCNICAS COMPUTACIONAIS E MINERAÇÃO DE DADOS EM SAÚDE PÚBLICA: Uma análise epidemiológica do câncer de mama em Minas Gerais 
+# Projeto Final de Curso (PFC) I 
+## Uma Abordagem Computacional Para Análise Epidemiológica do Câncer de Mama em Minas Gerais
 
-Este trabalho investiga como variáveis socioeconônomicas, demográficas e de acesso a saúde relacionadas ao câncer de mama se distribuem nos municípios de MG e quais delas exercem maior influência sobre a
-incidência da doença.
+O projeto consolida informações de múltiplas fontes públicas desde a extração, pré processamento e análise, seguindo a metodologia da Descoberta de Conhecimento em Bases de Dados (do inglês, KDD).
 
 ## Sobre o projeto
+
+Este PFC organiza dados demográficos, socioeconômicos e de infraestrutura em uma base para estudar câncer de mama em MG e validar abordagem metodológica proposta.
+
+**Tema**: câncer de mama feminino | **Território**: Minas Gerais | **Unidade**: município 
 
 ## 📁 Estrutura do repositório
 
@@ -36,7 +39,7 @@ PFC-I/
 │   ├── População - Faixa Etária/
 │   └── README.md
 │
-├── Resultados/             # Resultados da Análise Exploratória
+├── Resultados/             # Resultados da Análise Exploratória dos Dados
 │   ├── casos.ipynb
 │   ├── mamografia.ipynb
 │   ├── mortalidade.ipynb
@@ -48,23 +51,21 @@ PFC-I/
 ├── pyproject.toml          # Dependências e configuração
 └── README.md
 ```
-## 🔗 Fluxo integrado
+## 🔗 Fluxo
 
 ```
 Variáveis/ (dados brutos)
     ↓
-Tratamento/ (processa e padroniza)
+Tratamento/ (dados estruturados)
     ↓
-Resultados/ (analisa e cruza)
-    ↓
-Monografia/ (incorpora evidências)
+Resultados/ (conhecimento)
 ```
 
 ## 📚 Documentação
 
 - [Variáveis/README.md](Variáveis/README.md) — Extração e obtenção dos dados brutos
 - [Tratamento/README.md](Tratamento/README.md) — Pré processamento e obtenção dos dados estruturados
-- [Resultados/README.md](Resultados/README.md) — Resultados da Análise Exploratória
+- [Resultados/README.md](Resultados/README.md) — Resultados da Análise Exploratória dos Dados
 
 ## 🛠️ Tecnologias e dependências
 

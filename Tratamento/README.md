@@ -1,6 +1,6 @@
-# Tratamento - Processamento e Padronização
+# Tratamento para variáveis - Dados Estruturados
 
-## 📊 Estrutura de domínios e saídas
+## 📊 Estrutura 
 
 ```
 Tratamento/
@@ -61,7 +61,7 @@ Consolida dados de mamografia por ano e faixa etária.
 - `tabela_mamografia.csv` — série unificada 2013-2025
 
 ### 4) **Mortalidade**
-Processa dados do Atlas de Mortalidade (INCA).
+Processa dados do Atlas de Mortalidade por faixa etária, município e regional de saúde
 
 **Saídas**:
 - `tabela_mortalidade_faixa_etaria.csv` — mortes por faixa etária e ano
@@ -77,9 +77,4 @@ Consolida dados populacionais por grupo etário.
 
 **Saídas**:
 - `tabela_populacao_faixa_etaria.csv` — população por faixa e ano
-
-- **Normalização textual**: minúsculas, sem acentos para chaves de município
-- **Estrutura temporal**: colunas ANO_CATEGORIA (ex: 2022_BRANCO, 2023_PRETA)
-- **Formato retangular**: amplo (many columns) para facilitar cruzamentos
-- **Compatibilidade**: saídas prontas para uso em planilhas e Jupyter
 
