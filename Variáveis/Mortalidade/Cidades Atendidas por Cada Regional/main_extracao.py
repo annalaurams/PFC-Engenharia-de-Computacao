@@ -1,5 +1,3 @@
-#! /usr/bin/python3
-
 import os
 import time
 import glob
@@ -16,7 +14,6 @@ from selenium.common.exceptions import (
     TimeoutException,
 )
 
-# ________________________________________________________________________________
 # Configuração
 
 CIDADE = "Unaí"
@@ -206,7 +203,7 @@ def aplicar_filtros(driver, wait):
         time.sleep(1)
 
         print("\n" + "=" * 80)
-        print("[✔] Filtros aplicados com sucesso!".center(80))
+        print("Filtros aplicados com sucesso!".center(80))
         print("=" * 80)
         return True
 
@@ -317,7 +314,7 @@ def executar():
         driver.quit()
         return
 
-    input("\n[!] Verifique os filtros e pressione ENTER para iniciar os downloads\n")
+    input("\nVerifique os filtros e pressione ENTER para iniciar os downloads\n")
 
     anos_baixados = []
     anos_sem_dados = []
@@ -365,7 +362,7 @@ def executar():
             time.sleep(20)
 
             if verificar_erro_campos_obrigatorios(driver):
-                log_status(ano, "⚠ Erro de campos obrigatórios! Reconfigurando...", "ERRO")
+                log_status(ano, "Erro de campos obrigatórios! Reconfigurando...", "ERRO")
                 driver.refresh()
                 time.sleep(3)
                 if not aplicar_filtros(driver, wait):
@@ -376,13 +373,13 @@ def executar():
                 continue
 
             if verificar_sem_resultado(driver):
-                log_status(ano, "⊘ Sem dados (1ª verificação). Tentando novamente...", "AVISO")
+                log_status(ano, "Sem dados (1ª verificação). Tentando novamente...", "AVISO")
                 if not clicar_ok_com_retry(driver, wait):
                     raise Exception("Falha ao clicar no botão OK na 2ª tentativa")
                 time.sleep(15)
 
                 if verificar_erro_campos_obrigatorios(driver):
-                    log_status(ano, "⚠ Erro de campos obrigatórios! Reconfigurando...", "ERRO")
+                    log_status(ano, "Erro de campos obrigatórios! Reconfigurando...", "ERRO")
                     driver.refresh()
                     time.sleep(3)
                     if not aplicar_filtros(driver, wait):
@@ -393,7 +390,7 @@ def executar():
                     continue
 
                 if verificar_sem_resultado(driver):
-                    log_status(ano, "⊘ Sem dados confirmado após 2ª tentativa", "AVISO")
+                    log_status(ano, "Sem dados confirmado após 2ª tentativa", "AVISO")
                     anos_sem_dados.append(ano)
                     indice_ano += 1
                     tentativas_erro = 0
@@ -416,7 +413,7 @@ def executar():
             if arquivo_encontrado:
                 novo_nome = f"{ano}-{CIDADE}-{UF}.csv"
                 shutil.move(arquivo_encontrado, os.path.join(PASTA_DESTINO_CIDADE, novo_nome))
-                log_status(ano, f"✓ Arquivo salvo: {novo_nome}", "OK")
+                log_status(ano, f"Arquivo salvo: {novo_nome}", "OK")
                 anos_baixados.append(ano)
                 indice_ano += 1
                 tentativas_erro = 0
@@ -484,9 +481,9 @@ def executar():
         pass
 
     print("\n\033[1;32m" + "=" * 80)
-    print("[✓] EXTRAÇÃO FINALIZADA!".center(80))
+    print("EXTRAÇÃO FINALIZADA!".center(80))
     print("=" * 80 + "\033[0m")
-    print(f"\n📊 ESTATÍSTICAS:")
+    print(f"\nESTATÍSTICAS:")
     print(f"  • Total de anos no período : {len(PERIODO)}")
     print(f"  • CSVs baixados com sucesso: {len(anos_baixados)}")
     print(f"  • Anos sem dados           : {len(anos_sem_dados)}")

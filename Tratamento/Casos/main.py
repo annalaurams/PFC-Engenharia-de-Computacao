@@ -108,15 +108,20 @@ def aggregate_ano_diagnostico(raw_files: list[Path]) -> pd.DataFrame:
 
 	long_df = pd.concat(frames, ignore_index=True)
 	value_cols = [c for c in long_df.columns if c not in {"MUNICIPIOS", "CODIGO"}]
+	
 	for col in value_cols:
 		long_df[col] = pd.to_numeric(long_df[col], errors="coerce")
 
-	agg = long_df.groupby(["MUNICIPIOS", "CODIGO"], as_index=False)[value_cols].sum(min_count=1)
+		agg = long_df.groupby(["MUNICIPIOS", "CODIGO"], as_index=False)[value_cols].sum(min_count=1)
 
-	ano_cols = sorted([c for c in value_cols if re.fullmatch(r"\d{4}", str(c))], key=lambda x: int(x))
-	tail_cols = [c for c in value_cols if c not in ano_cols]
-	ordered = ["MUNICIPIOS", "CODIGO", *ano_cols, *sorted(tail_cols)]
-	return agg[ordered].rename(columns={"MUNICIPIOS": "MUNICÍPIOS", "CODIGO": "CÓDIGO"})
+		ano_cols = sorted(
+			[c for c in value_cols if re.fullmatch(r"\d{4}", str(c)) and 1985 <= int(c) <= 2023],
+			key=lambda x: int(x)
+		)
+		tail_cols = [c for c in value_cols if c not in ano_cols and not re.fullmatch(r"\d{4}", str(c))]
+		ordered = ["MUNICIPIOS", "CODIGO", *ano_cols, *sorted(tail_cols)]
+		
+		return agg[ordered].rename(columns={"MUNICIPIOS": "MUNICÍPIOS", "CODIGO": "CÓDIGO"})
 
 
 def extract_year(file_name: str) -> int:
@@ -139,45 +144,39 @@ def normalize_categoria_raca(col: str) -> str:
 		return "Sem Informacao"
 	return normalized
 
-
 FAIXA_TARGET = [
-	"0-9",
-	"10-19",
-	"20-29",
-	"30-39",
-	"40-49",
-	"50-59",
-	"60-69",
-	"70-79",
-	"80 ou mais",
+    "0-9",
+    "10-19",
+    "20-29",
+    "30-39",
+    "40-49",
+    "50-59",
+    "60-69",
+    "70 ou mais",   # ← unifica 70-79 e 80 ou mais aqui
 ]
-
 
 # ________________________________________________________________________________
 # Criação de colunas
 
 def map_faixa(col: str) -> str | None:
-	c = normalize_text(col).replace(" ", "")
-	if c in {"00-04", "0-4", "05-09", "5-9"}:
-		return "0-9"
-	if c in {"10-14", "15-19"}:
-		return "10-19"
-	if c in {"20-24", "25-29"}:
-		return "20-29"
-	if c in {"30-34", "35-39"}:
-		return "30-39"
-	if c in {"40-44", "45-49"}:
-		return "40-49"
-	if c in {"50-54", "55-59"}:
-		return "50-59"
-	if c in {"60-64", "65-69"}:
-		return "60-69"
-	if c in {"70-74", "75-79"}:
-		return "70-79"
-	if c in {"80-84", "85+", "85-89", "90+"}:
-		return "80 ou mais"
-	return None
-
+    c = normalize_text(col).replace(" ", "")
+    if c in {"00-04", "0-4", "05-09", "5-9"}:
+        return "0-9"
+    if c in {"10-14", "15-19"}:
+        return "10-19"
+    if c in {"20-24", "25-29"}:
+        return "20-29"
+    if c in {"30-34", "35-39"}:
+        return "30-39"
+    if c in {"40-44", "45-49"}:
+        return "40-49"
+    if c in {"50-54", "55-59"}:
+        return "50-59"
+    if c in {"60-64", "65-69"}:
+        return "60-69"
+    if c in {"70-74", "75-79", "70-79", "80-84", "85+", "85-89", "90+", "80oumais", "80+"}:
+        return "70 ou mais"
+    return None
 
 def aggregate_wide_by_year(
 	raw_files: list[Path],

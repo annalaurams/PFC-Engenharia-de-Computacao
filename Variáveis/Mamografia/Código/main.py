@@ -22,7 +22,6 @@ from webdriver_manager.chrome import ChromeDriverManager
 import requests
 
 
-# ________________________________________________________________________________
 # Extração: Configuração e variáveis
 
 URL = "https://tabnet.datasus.gov.br/cgi/dhdat.exe?siscan/mamografia_atendmg.def"

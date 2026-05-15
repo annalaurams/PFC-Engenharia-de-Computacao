@@ -1,7 +1,7 @@
 ﻿codigo_ibge,municipio_original,municipio_normalizado,regional_original,regional_normalizada
 3100104,Abadia dos Dourados,abadia dos dourados,Uberlândia,uberlandia
 3100203,Abaeté,abaete,Sete Lagoas,sete lagoas
-3100302,Abre Campo,abre campo,Manhuaçu,manhuacu
+3100302,Abre Campo,abre campo,Manhumirim,manhumirim
 3100401,Acaiaca,acaiaca,Ponte Nova,ponte nova
 3100500,Açucena,acucena,Coronel Fabriciano,coronel fabriciano
 3100609,Água Boa,agua boa,Governador Valadares,governador valadares
@@ -20,8 +20,8 @@
 3101805,Alpercata,alpercata,Governador Valadares,governador valadares
 3101904,Alpinópolis,alpinopolis,Passos,passos
 3102001,Alterosa,alterosa,Alfenas,alfenas
-3102050,Alto Caparaó,alto caparao,Manhuaçu,manhuacu
-3153509,Alto Jequitibá,alto jequitiba,Manhuaçu,manhuacu
+3102050,Alto Caparaó,alto caparao,Manhumirim,manhumirim
+3153509,Alto Jequitibá,alto jequitiba,Manhumirim,manhumirim
 3102100,Alto Rio Doce,alto rio doce,Barbacena,barbacena
 3102209,Alvarenga,alvarenga,Governador Valadares,governador valadares
 3102308,Alvinópolis,alvinopolis,Ponte Nova,ponte nova
@@ -68,7 +68,7 @@
 3106309,Belo Oriente,belo oriente,Coronel Fabriciano,coronel fabriciano
 3106408,Belo Vale,belo vale,Belo Horizonte,belo horizonte
 3106507,Berilo,berilo,Diamantina,diamantina
-3106655,Berizal,berizal,Montes Claros,montes claros
+3106655,Berizal,berizal,,
 3106606,Bertópolis,bertopolis,Teófilo Otoni,teofilo otoni
 3106705,Betim,betim,Belo Horizonte,belo horizonte
 3106804,Bias Fortes,bias fortes,Juiz de Fora,juiz de fora
@@ -83,7 +83,7 @@
 3107703,Bom Jesus do Amparo,bom jesus do amparo,Itabira,itabira
 3107802,Bom Jesus do Galho,bom jesus do galho,Coronel Fabriciano,coronel fabriciano
 3107901,Bom Repouso,bom repouso,Pouso Alegre,pouso alegre
-3108008,Bom Sucesso,bom sucesso,São João Del Rei,sao joao del rei
+3108008,Bom Sucesso,bom sucesso,Divinópolis,divinopolis
 3108107,Bonfim,bonfim,Belo Horizonte,belo horizonte
 3108206,Bonfinópolis de Minas,bonfinopolis de minas,Unaí,unai
 3108255,Bonito de Minas,bonito de minas,Januária,januaria
@@ -94,7 +94,7 @@
 3108552,Brasilândia de Minas,brasilandia de minas,Patos de Minas,patos de minas
 3108602,Brasília de Minas,brasilia de minas,Januária,januaria
 3108800,Braúnas,braunas,Coronel Fabriciano,coronel fabriciano
-3108909,Brazópolis,brazopolis,Pouso Alegre,pouso alegre
+3108909,Brazópolis,brasopolis,Pouso Alegre,pouso alegre
 3109006,Brumadinho,brumadinho,Belo Horizonte,belo horizonte
 3109105,Bueno Brandão,bueno brandao,Pouso Alegre,pouso alegre
 3109204,Buenópolis,buenopolis,Sete Lagoas,sete lagoas
@@ -109,8 +109,8 @@
 3109808,Cachoeira Dourada,cachoeira dourada,Ituiutaba,ituiutaba
 3109907,Caetanópolis,caetanopolis,Sete Lagoas,sete lagoas
 3110004,Caeté,caete,Belo Horizonte,belo horizonte
-3110103,Caiana,caiana,Manhuaçu,manhuacu
-3110202,Cajuri,cajuri,Ponte Nova,ponte nova
+3110103,Caiana,caiana,Manhumirim,manhumirim
+3110202,Cajuri,cajuri,,
 3110301,Caldas,caldas,Pouso Alegre,pouso alegre
 3110400,Camacho,camacho,Divinópolis,divinopolis
 3110509,Camanducaia,camanducaia,Pouso Alegre,pouso alegre
@@ -131,7 +131,7 @@
 3111804,Canápolis,canapolis,Ituiutaba,ituiutaba
 3112000,Candeias,candeias,Divinópolis,divinopolis
 3112059,Cantagalo,cantagalo,Governador Valadares,governador valadares
-3112109,Caparaó,caparao,Manhuaçu,manhuacu
+3112109,Caparaó,caparao,Manhumirim,manhumirim
 3112208,Capela Nova,capela nova,Barbacena,barbacena
 3112307,Capelinha,capelinha,Diamantina,diamantina
 3112406,Capetinga,capetinga,Passos,passos
@@ -140,11 +140,11 @@
 3112653,Capitão Andrade,capitao andrade,Governador Valadares,governador valadares
 3112703,Capitão Enéas,capitao eneas,Montes Claros,montes claros
 3112802,Capitólio,capitolio,Passos,passos
-3112901,Caputira,caputira,Manhuaçu,manhuacu
+3112901,Caputira,caputira,Manhumirim,manhumirim
 3113008,Caraí,carai,Teófilo Otoni,teofilo otoni
 3113107,Caranaíba,caranaiba,Barbacena,barbacena
 3113206,Carandaí,carandai,Barbacena,barbacena
-3113305,Carangola,carangola,Manhuaçu,manhuacu
+3113305,Carangola,carangola,Manhumirim,manhumirim
 3113404,Caratinga,caratinga,Coronel Fabriciano,coronel fabriciano
 3113503,Carbonita,carbonita,Diamantina,diamantina
 3113602,Careaçu,careacu,Pouso Alegre,pouso alegre
@@ -155,7 +155,7 @@
 3114105,Carmo de Minas,carmo de minas,Varginha,varginha
 3114204,Carmo do Cajuru,carmo do cajuru,Divinópolis,divinopolis
 3114303,Carmo do Paranaíba,carmo do paranaiba,Patos de Minas,patos de minas
-3114402,Carmo do Rio Claro,carmo do rio claro,Passos,passos
+3114402,Carmo do Rio Claro,carmo do rio claro,Alfenas,alfenas
 3114501,Carmópolis de Minas,carmopolis de minas,Divinópolis,divinopolis
 3114550,Carneirinho,carneirinho,Uberaba,uberaba
 3114600,Carrancas,carrancas,Varginha,varginha
@@ -174,12 +174,12 @@
 3115706,Central de Minas,central de minas,Governador Valadares,governador valadares
 3115805,Centralina,centralina,Ituiutaba,ituiutaba
 3115904,Chácara,chacara,Juiz de Fora,juiz de fora
-3116001,Chalé,chale,Manhuaçu,manhuacu
+3116001,Chalé,chale,Manhumirim,manhumirim
 3116100,Chapada do Norte,chapada do norte,Diamantina,diamantina
 3116159,Chapada Gaúcha,chapada gaucha,Unaí,unai
 3116209,Chiador,chiador,Juiz de Fora,juiz de fora
 3116308,Cipotânea,cipotanea,Barbacena,barbacena
-3116407,Claraval,claraval,Passos,passos
+3116407,Claraval,claraval,,
 3116506,Claro dos Poções,claro dos pocoes,Montes Claros,montes claros
 3116605,Cláudio,claudio,Divinópolis,divinopolis
 3116704,Coimbra,coimbra,Ubá,uba
@@ -190,8 +190,8 @@
 3115201,Conceição da Barra de Minas,conceicao da barra de minas,São João Del Rei,sao joao del rei
 3117306,Conceição das Alagoas,conceicao das alagoas,Uberaba,uberaba
 3117207,Conceição das Pedras,conceicao das pedras,Pouso Alegre,pouso alegre
-3117405,Conceição de Ipanema,conceicao de ipanema,Manhuaçu,manhuacu
-3117504,Conceição do Mato Dentro,conceicao do mato dentro,Diamantina,diamantina
+3117405,Conceição de Ipanema,conceicao de ipanema,Manhumirim,manhumirim
+3117504,Conceição do Mato Dentro,conceicao do mato dentro,Belo Horizonte,belo horizonte
 3117603,Conceição do Pará,conceicao do para,Divinópolis,divinopolis
 3117702,Conceição do Rio Verde,conceicao do rio verde,Varginha,varginha
 3117801,Conceição dos Ouros,conceicao dos ouros,Pouso Alegre,pouso alegre
@@ -203,7 +203,7 @@
 3118205,Conquista,conquista,Uberaba,uberaba
 3118304,Conselheiro Lafaiete,conselheiro lafaiete,Barbacena,barbacena
 3118403,Conselheiro Pena,conselheiro pena,Governador Valadares,governador valadares
-3118502,Consolação,consolacao,Pouso Alegre,pouso alegre
+3118502,Consolação,consolacao,,
 3118601,Contagem,contagem,Belo Horizonte,belo horizonte
 3118700,Coqueiral,coqueiral,Varginha,varginha
 3118809,Coração de Jesus,coracao de jesus,Montes Claros,montes claros
@@ -237,17 +237,17 @@
 3121209,Delfinópolis,delfinopolis,Passos,passos
 3121258,Delta,delta,Uberaba,uberaba
 3121308,Descoberto,descoberto,Juiz de Fora,juiz de fora
-3121407,Desterro de Entre Rios,desterro de entre rios,Barbacena,barbacena
+3121407,Desterro de Entre Rios,desterro de entre rios,São João Del Rei,sao joao del rei
 3121506,Desterro do Melo,desterro do melo,Barbacena,barbacena
 3121605,Diamantina,diamantina,Diamantina,diamantina
 3121704,Diogo de Vasconcelos,diogo de vasconcelos,Ponte Nova,ponte nova
 3121803,Dionísio,dionisio,Coronel Fabriciano,coronel fabriciano
 3121902,Divinésia,divinesia,Ubá,uba
-3122009,Divino,divino,Manhuaçu,manhuacu
+3122009,Divino,divino,Manhumirim,manhumirim
 3122108,Divino das Laranjeiras,divino das laranjeiras,Governador Valadares,governador valadares
 3122207,Divinolândia de Minas,divinolandia de minas,Governador Valadares,governador valadares
 3122306,Divinópolis,divinopolis,Divinópolis,divinopolis
-3122355,Divisa Alegre,divisa alegre,Pedra Azul,pedra azul
+3122355,Divisa Alegre,divisa alegre,,
 3122405,Divisa Nova,divisa nova,Alfenas,alfenas
 3122454,Divisópolis,divisopolis,Pedra Azul,pedra azul
 3122470,Dom Bosco,dom bosco,Unaí,unai
@@ -255,22 +255,22 @@
 3122603,Dom Joaquim,dom joaquim,Itabira,itabira
 3122702,Dom Silvério,dom silverio,Ponte Nova,ponte nova
 3122801,Dom Viçoso,dom vicoso,Varginha,varginha
-3122900,Dona Euzébia,dona euzebia,Leopoldina,leopoldina
-3123007,Dores de Campos,dores de campos,São João Del Rei,sao joao del rei
+3122900,Dona Euzébia,dona eusebia,Leopoldina,leopoldina
+3123007,Dores de Campos,dores de campos,,
 3123106,Dores de Guanhães,dores de guanhaes,Itabira,itabira
 3123205,Dores do Indaiá,dores do indaia,Divinópolis,divinopolis
 3123304,Dores do Turvo,dores do turvo,Ubá,uba
 3123403,Doresópolis,doresopolis,Passos,passos
-3123502,Douradoquara,douradoquara,Uberlândia,uberlandia
-3123528,Durandé,durande,Manhuaçu,manhuacu
+3123502,Douradoquara,douradoquara,,
+3123528,Durandé,durande,Manhumirim,manhumirim
 3123601,Elói Mendes,eloi mendes,Varginha,varginha
 3123700,Engenheiro Caldas,engenheiro caldas,Governador Valadares,governador valadares
 3123809,Engenheiro Navarro,engenheiro navarro,Montes Claros,montes claros
 3123858,Entre Folhas,entre folhas,Coronel Fabriciano,coronel fabriciano
-3123908,Entre Rios de Minas,entre rios de minas,Barbacena,barbacena
+3123908,Entre Rios de Minas,entre rios de minas,São João Del Rei,sao joao del rei
 3124005,Ervália,ervalia,Ubá,uba
 3124104,Esmeraldas,esmeraldas,Belo Horizonte,belo horizonte
-3124203,Espera Feliz,espera feliz,Manhuaçu,manhuacu
+3124203,Espera Feliz,espera feliz,Manhumirim,manhumirim
 3124302,Espinosa,espinosa,Montes Claros,montes claros
 3124401,Espírito Santo do Dourado,espirito santo do dourado,Pouso Alegre,pouso alegre
 3124500,Estiva,estiva,Pouso Alegre,pouso alegre
@@ -281,13 +281,13 @@
 3125002,Ewbank da Câmara,ewbank da camara,Juiz de Fora,juiz de fora
 3125101,Extrema,extrema,Pouso Alegre,pouso alegre
 3125200,Fama,fama,Alfenas,alfenas
-3125309,Faria Lemos,faria lemos,Manhuaçu,manhuacu
+3125309,Faria Lemos,faria lemos,Manhumirim,manhumirim
 3125408,Felício dos Santos,felicio dos santos,Diamantina,diamantina
 3125606,Felisburgo,felisburgo,Pedra Azul,pedra azul
 3125705,Felixlândia,felixlandia,Sete Lagoas,sete lagoas
 3125804,Fernandes Tourinho,fernandes tourinho,Governador Valadares,governador valadares
 3125903,Ferros,ferros,Itabira,itabira
-3125952,Fervedouro,fervedouro,Manhuaçu,manhuacu
+3125952,Fervedouro,fervedouro,Manhumirim,manhumirim
 3126000,Florestal,florestal,Belo Horizonte,belo horizonte
 3126109,Formiga,formiga,Divinópolis,divinopolis
 3126208,Formoso,formoso,Unaí,unai
@@ -315,7 +315,7 @@
 3127602,Gouveia,gouveia,Diamantina,diamantina
 3127701,Governador Valadares,governador valadares,Governador Valadares,governador valadares
 3127800,Grão Mogol,grao mogol,Montes Claros,montes claros
-3127909,Grupiara,grupiara,Uberlândia,uberlandia
+3127909,Grupiara,grupiara,,
 3128006,Guanhães,guanhaes,Itabira,itabira
 3128105,Guapé,guape,Passos,passos
 3128204,Guaraciaba,guaraciaba,Ponte Nova,ponte nova
@@ -354,7 +354,7 @@
 3131000,Inhaúma,inhauma,Sete Lagoas,sete lagoas
 3131109,Inimutaba,inimutaba,Sete Lagoas,sete lagoas
 3131158,Ipaba,ipaba,Coronel Fabriciano,coronel fabriciano
-3131208,Ipanema,ipanema,Manhuaçu,manhuacu
+3131208,Ipanema,ipanema,Manhumirim,manhumirim
 3131307,Ipatinga,ipatinga,Coronel Fabriciano,coronel fabriciano
 3131406,Ipiaçu,ipiacu,Ituiutaba,ituiutaba
 3131505,Ipuiúna,ipuiuna,Pouso Alegre,pouso alegre
@@ -429,7 +429,7 @@
 3137502,Lagoa Formosa,lagoa formosa,Patos de Minas,patos de minas
 3137536,Lagoa Grande,lagoa grande,Patos de Minas,patos de minas
 3137601,Lagoa Santa,lagoa santa,Belo Horizonte,belo horizonte
-3137700,Lajinha,lajinha,Manhuaçu,manhuacu
+3137700,Lajinha,lajinha,Manhumirim,manhumirim
 3137809,Lambari,lambari,Varginha,varginha
 3137908,Lamim,lamim,Barbacena,barbacena
 3138005,Laranjal,laranjal,Leopoldina,leopoldina
@@ -442,7 +442,7 @@
 3138609,Lima Duarte,lima duarte,Juiz de Fora,juiz de fora
 3138625,Limeira do Oeste,limeira do oeste,Uberaba,uberaba
 3138658,Lontra,lontra,Januária,januaria
-3138674,Luisburgo,luisburgo,Manhuaçu,manhuacu
+3138674,Luisburgo,luisburgo,Manhumirim,manhumirim
 3138682,Luislândia,luislandia,Januária,januaria
 3138708,Luminárias,luminarias,Varginha,varginha
 3138807,Luz,luz,Divinópolis,divinopolis
@@ -452,8 +452,8 @@
 3139201,Malacacheta,malacacheta,Teófilo Otoni,teofilo otoni
 3139250,Mamonas,mamonas,Montes Claros,montes claros
 3139300,Manga,manga,Januária,januaria
-3139409,Manhuaçu,manhuacu,Manhuaçu,manhuacu
-3139508,Manhumirim,manhumirim,Manhuaçu,manhuacu
+3139409,Manhuaçu,manhuacu,Manhumirim,manhumirim
+3139508,Manhumirim,manhumirim,Manhumirim,manhumirim
 3139607,Mantena,mantena,Governador Valadares,governador valadares
 3139805,Mar de Espanha,mar de espanha,Juiz de Fora,juiz de fora
 3139706,Maravilhas,maravilhas,Sete Lagoas,sete lagoas
@@ -465,14 +465,14 @@
 3140308,Marliéria,marlieria,Coronel Fabriciano,coronel fabriciano
 3140407,Marmelópolis,marmelopolis,Pouso Alegre,pouso alegre
 3140506,Martinho Campos,martinho campos,Divinópolis,divinopolis
-3140530,Martins Soares,martins soares,Manhuaçu,manhuacu
+3140530,Martins Soares,martins soares,Manhumirim,manhumirim
 3140555,Mata Verde,mata verde,Pedra Azul,pedra azul
-3140605,Materlândia,materlandia,Itabira,itabira
+3140605,Materlândia,materlandia,Diamantina,diamantina
 3140704,Mateus Leme,mateus leme,Belo Horizonte,belo horizonte
 3171501,Mathias Lobato,mathias lobato,Governador Valadares,governador valadares
 3140803,Matias Barbosa,matias barbosa,Juiz de Fora,juiz de fora
 3140852,Matias Cardoso,matias cardoso,Montes Claros,montes claros
-3140902,Matipó,matipo,Manhuaçu,manhuacu
+3140902,Matipó,matipo,Manhumirim,manhumirim
 3141009,Mato Verde,mato verde,Montes Claros,montes claros
 3141108,Matozinhos,matozinhos,Belo Horizonte,belo horizonte
 3141207,Matutina,matutina,Patos de Minas,patos de minas
@@ -483,7 +483,7 @@
 3141702,Mesquita,mesquita,Coronel Fabriciano,coronel fabriciano
 3141801,Minas Novas,minas novas,Diamantina,diamantina
 3141900,Minduri,minduri,Varginha,varginha
-3142007,Mirabela,mirabela,Montes Claros,montes claros
+3142007,Mirabela,mirabela,Januária,januaria
 3142106,Miradouro,miradouro,Ubá,uba
 3142205,Miraí,mirai,Ubá,uba
 3142254,Miravânia,miravania,Januária,januaria
@@ -496,7 +496,7 @@
 3142908,Monte Azul,monte azul,Montes Claros,montes claros
 3143005,Monte Belo,monte belo,Alfenas,alfenas
 3143104,Monte Carmelo,monte carmelo,Uberlândia,uberlandia
-3143153,Monte Formoso,monte formoso,Pedra Azul,pedra azul
+3143153,Monte Formoso,monte formoso,,
 3143203,Monte Santo de Minas,monte santo de minas,Passos,passos
 3143401,Monte Sião,monte siao,Pouso Alegre,pouso alegre
 3143302,Montes Claros,montes claros,Montes Claros,montes claros
@@ -506,7 +506,7 @@
 3143708,Morro do Pilar,morro do pilar,Itabira,itabira
 3143807,Munhoz,munhoz,Pouso Alegre,pouso alegre
 3143906,Muriaé,muriae,Ubá,uba
-3144003,Mutum,mutum,Manhuaçu,manhuacu
+3144003,Mutum,mutum,Manhumirim,manhumirim
 3144102,Muzambinho,muzambinho,Alfenas,alfenas
 3144201,Nacip Raydan,nacip raydan,Governador Valadares,governador valadares
 3144300,Nanuque,nanuque,Teófilo Otoni,teofilo otoni
@@ -522,7 +522,7 @@
 3144904,Nova Módica,nova modica,Teófilo Otoni,teofilo otoni
 3145000,Nova Ponte,nova ponte,Uberlândia,uberlandia
 3145059,Nova Porteirinha,nova porteirinha,Montes Claros,montes claros
-3145109,Nova Resende,nova resende,Passos,passos
+3145109,Nova Resende,nova resende,Alfenas,alfenas
 3145208,Nova Serrana,nova serrana,Divinópolis,divinopolis
 3136603,Nova União,nova uniao,Belo Horizonte,belo horizonte
 3145307,Novo Cruzeiro,novo cruzeiro,Teófilo Otoni,teofilo otoni
@@ -535,7 +535,7 @@
 3145703,Oliveira Fortes,oliveira fortes,Juiz de Fora,juiz de fora
 3145802,Onça de Pitangui,onca de pitangui,Divinópolis,divinopolis
 3145851,Oratórios,oratorios,Ponte Nova,ponte nova
-3145877,Orizânia,orizania,Manhuaçu,manhuacu
+3145877,Orizânia,orizania,Manhumirim,manhumirim
 3145901,Ouro Branco,ouro branco,Barbacena,barbacena
 3146008,Ouro Fino,ouro fino,Pouso Alegre,pouso alegre
 3146107,Ouro Preto,ouro preto,Belo Horizonte,belo horizonte
@@ -556,7 +556,7 @@
 3147402,Paraopeba,paraopeba,Sete Lagoas,sete lagoas
 3147600,Passa Quatro,passa quatro,Varginha,varginha
 3147709,Passa Tempo,passa tempo,Divinópolis,divinopolis
-3147808,Passa Vinte,passa vinte,Juiz de Fora,juiz de fora
+3147808,Passa Vinte,passa vinte,,
 3147501,Passabém,passabem,Itabira,itabira
 3147907,Passos,passos,Passos,passos
 3147956,Patis,patis,Januária,januaria
@@ -568,10 +568,10 @@
 3148509,Pavão,pavao,Teófilo Otoni,teofilo otoni
 3148608,Peçanha,pecanha,Governador Valadares,governador valadares
 3148707,Pedra Azul,pedra azul,Pedra Azul,pedra azul
-3148756,Pedra Bonita,pedra bonita,Manhuaçu,manhuacu
+3148756,Pedra Bonita,pedra bonita,Manhumirim,manhumirim
 3148806,Pedra do Anta,pedra do anta,Ponte Nova,ponte nova
 3148905,Pedra do Indaiá,pedra do indaia,Divinópolis,divinopolis
-3149002,Pedra Dourada,pedra dourada,Manhuaçu,manhuacu
+3149002,Pedra Dourada,pedra dourada,Manhumirim,manhumirim
 3149101,Pedralva,pedralva,Pouso Alegre,pouso alegre
 3149150,Pedras de Maria da Cruz,pedras de maria da cruz,Januária,januaria
 3149200,Pedrinópolis,pedrinopolis,Uberaba,uberaba
@@ -589,7 +589,7 @@
 3150208,Piedade de Ponte Nova,piedade de ponte nova,Ponte Nova,ponte nova
 3150307,Piedade do Rio Grande,piedade do rio grande,São João Del Rei,sao joao del rei
 3150406,Piedade dos Gerais,piedade dos gerais,Belo Horizonte,belo horizonte
-3150505,Pimenta,pimenta,Passos,passos
+3150505,Pimenta,pimenta,Divinópolis,divinopolis
 3150539,Pingo-d'Água,pingo-d'agua,Coronel Fabriciano,coronel fabriciano
 3150570,Pintópolis,pintopolis,Januária,januaria
 3150604,Piracema,piracema,Divinópolis,divinopolis
@@ -605,7 +605,7 @@
 3151602,Planura,planura,Uberaba,uberaba
 3151701,Poço Fundo,poco fundo,Alfenas,alfenas
 3151800,Poços de Caldas,pocos de caldas,Pouso Alegre,pouso alegre
-3151909,Pocrane,pocrane,Manhuaçu,manhuacu
+3151909,Pocrane,pocrane,Manhumirim,manhumirim
 3152006,Pompéu,pompeu,Sete Lagoas,sete lagoas
 3152105,Ponte Nova,ponte nova,Ponte Nova,ponte nova
 3152131,Ponto Chique,ponto chique,Pirapora,pirapora
@@ -629,7 +629,7 @@
 3153905,Raposos,raposos,Belo Horizonte,belo horizonte
 3154002,Raul Soares,raul soares,Ponte Nova,ponte nova
 3154101,Recreio,recreio,Leopoldina,leopoldina
-3154150,Reduto,reduto,Manhuaçu,manhuacu
+3154150,Reduto,reduto,Manhumirim,manhumirim
 3154200,Resende Costa,resende costa,São João Del Rei,sao joao del rei
 3154309,Resplendor,resplendor,Governador Valadares,governador valadares
 3154408,Ressaquinha,ressaquinha,Barbacena,barbacena
@@ -649,7 +649,7 @@
 3155702,Rio Piracicaba,rio piracicaba,Itabira,itabira
 3155801,Rio Pomba,rio pomba,Ubá,uba
 3155900,Rio Preto,rio preto,Juiz de Fora,juiz de fora
-3156007,Rio Vermelho,rio vermelho,Itabira,itabira
+3156007,Rio Vermelho,rio vermelho,Diamantina,diamantina
 3156106,Ritápolis,ritapolis,São João Del Rei,sao joao del rei
 3156205,Rochedo de Minas,rochedo de minas,Juiz de Fora,juiz de fora
 3156304,Rodeiro,rodeiro,Ubá,uba
@@ -658,7 +658,7 @@
 3156502,Rubelita,rubelita,Montes Claros,montes claros
 3156601,Rubim,rubim,Pedra Azul,pedra azul
 3156700,Sabará,sabara,Belo Horizonte,belo horizonte
-3156809,Sabinópolis,sabinopolis,Itabira,itabira
+3156809,Sabinópolis,sabinopolis,Diamantina,diamantina
 3156908,Sacramento,sacramento,Uberaba,uberaba
 3157005,Salinas,salinas,Montes Claros,montes claros
 3157104,Salto da Divisa,salto da divisa,Pedra Azul,pedra azul
@@ -674,7 +674,7 @@
 3157658,Santa Helena de Minas,santa helena de minas,Teófilo Otoni,teofilo otoni
 3157708,Santa Juliana,santa juliana,Uberaba,uberaba
 3157807,Santa Luzia,santa luzia,Belo Horizonte,belo horizonte
-3157906,Santa Margarida,santa margarida,Manhuaçu,manhuacu
+3157906,Santa Margarida,santa margarida,Manhumirim,manhumirim
 3158003,Santa Maria de Itabira,santa maria de itabira,Itabira,itabira
 3158102,Santa Maria do Salto,santa maria do salto,Pedra Azul,pedra azul
 3158201,Santa Maria do Suaçuí,santa maria do suacui,Governador Valadares,governador valadares
@@ -692,7 +692,7 @@
 3158607,Santana do Deserto,santana do deserto,Juiz de Fora,juiz de fora
 3158706,Santana do Garambéu,santana do garambeu,Barbacena,barbacena
 3158805,Santana do Jacaré,santana do jacare,Divinópolis,divinopolis
-3158904,Santana do Manhuaçu,santana do manhuacu,Manhuaçu,manhuacu
+3158904,Santana do Manhuaçu,santana do manhuacu,Manhumirim,manhumirim
 3158953,Santana do Paraíso,santana do paraiso,Coronel Fabriciano,coronel fabriciano
 3159001,Santana do Riacho,santana do riacho,Belo Horizonte,belo horizonte
 3159100,Santana dos Montes,santana dos montes,Barbacena,barbacena
@@ -702,7 +702,7 @@
 3160207,Santo Antônio do Itambé,santo antonio do itambe,Diamantina,diamantina
 3160306,Santo Antônio do Jacinto,santo antonio do jacinto,Pedra Azul,pedra azul
 3160405,Santo Antônio do Monte,santo antonio do monte,Divinópolis,divinopolis
-3160454,Santo Antônio do Retiro,santo antonio do retiro,Montes Claros,montes claros
+3160454,Santo Antônio do Retiro,santo antonio do retiro,,
 3160504,Santo Antônio do Rio Abaixo,santo antonio do rio abaixo,Itabira,itabira
 3160603,Santo Hipólito,santo hipolito,Sete Lagoas,sete lagoas
 3160702,Santos Dumont,santos dumont,Juiz de Fora,juiz de fora
@@ -722,7 +722,7 @@
 3161809,São Gonçalo do Pará,sao goncalo do para,Divinópolis,divinopolis
 3161908,São Gonçalo do Rio Abaixo,sao goncalo do rio abaixo,Itabira,itabira
 3125507,São Gonçalo do Rio Preto,sao goncalo do rio preto,Diamantina,diamantina
-3162005,São Gonçalo do Sapucaí,sao goncalo do sapucai,Varginha,varginha
+3162005,São Gonçalo do Sapucaí,sao goncalo do sapucai,Pouso Alegre,pouso alegre
 3162104,São Gotardo,sao gotardo,Patos de Minas,patos de minas
 3162203,São João Batista do Glória,sao joao batista do gloria,Passos,passos
 3162252,São João da Lagoa,sao joao da lagoa,Montes Claros,montes claros
@@ -730,7 +730,7 @@
 3162401,São João da Ponte,sao joao da ponte,Januária,januaria
 3162450,São João das Missões,sao joao das missoes,Januária,januaria
 3162500,São João del Rei,sao joao del rei,São João Del Rei,sao joao del rei
-3162559,São João do Manhuaçu,sao joao do manhuacu,Manhuaçu,manhuacu
+3162559,São João do Manhuaçu,sao joao do manhuacu,Manhumirim,manhumirim
 3162575,São João do Manteninha,sao joao do manteninha,Governador Valadares,governador valadares
 3162609,São João do Oriente,sao joao do oriente,Coronel Fabriciano,coronel fabriciano
 3162658,São João do Pacuí,sao joao do pacui,Montes Claros,montes claros
@@ -746,7 +746,7 @@
 3163300,São José do Divino,sao jose do divino,Teófilo Otoni,teofilo otoni
 3163409,São José do Goiabal,sao jose do goiabal,Ponte Nova,ponte nova
 3163508,São José do Jacuri,sao jose do jacuri,Governador Valadares,governador valadares
-3163607,São José do Mantimento,sao jose do mantimento,Manhuaçu,manhuacu
+3163607,São José do Mantimento,sao jose do mantimento,Manhumirim,manhumirim
 3163706,São Lourenço,sao lourenco,Varginha,varginha
 3163805,São Miguel do Anta,sao miguel do anta,Ponte Nova,ponte nova
 3163904,São Pedro da União,sao pedro da uniao,Alfenas,alfenas
@@ -764,7 +764,7 @@
 3164902,São Sebastião do Rio Verde,sao sebastiao do rio verde,Varginha,varginha
 3165008,São Tiago,sao tiago,São João Del Rei,sao joao del rei
 3165107,São Tomás de Aquino,sao tomas de aquino,Passos,passos
-3165206,São Tomé das Letras,sao tome das letras,Varginha,varginha
+3165206,São Tomé das Letras,sao thome das letras,Varginha,varginha
 3165305,São Vicente de Minas,sao vicente de minas,São João Del Rei,sao joao del rei
 3165404,Sapucaí-Mirim,sapucai-mirim,Pouso Alegre,pouso alegre
 3165503,Sardoá,sardoa,Governador Valadares,governador valadares
@@ -793,14 +793,14 @@
 3167301,Silveirânia,silveirania,Ubá,uba
 3167400,Silvianópolis,silvianopolis,Pouso Alegre,pouso alegre
 3167509,Simão Pereira,simao pereira,Juiz de Fora,juiz de fora
-3167608,Simonésia,simonesia,Manhuaçu,manhuacu
+3167608,Simonésia,simonesia,Manhumirim,manhumirim
 3167707,Sobrália,sobralia,Governador Valadares,governador valadares
 3167806,Soledade de Minas,soledade de minas,Varginha,varginha
 3167905,Tabuleiro,tabuleiro,Ubá,uba
 3168002,Taiobeiras,taiobeiras,Montes Claros,montes claros
-3168051,Taparuba,taparuba,Manhuaçu,manhuacu
+3168051,Taparuba,taparuba,Manhumirim,manhumirim
 3168101,Tapira,tapira,Uberaba,uberaba
-3168200,Tapiraí,tapirai,Divinópolis,divinopolis
+3168200,Tapiraí,tapirai,,
 3168309,Taquaraçu de Minas,taquaracu de minas,Belo Horizonte,belo horizonte
 3168408,Tarumirim,tarumirim,Governador Valadares,governador valadares
 3168507,Teixeiras,teixeiras,Ponte Nova,ponte nova
@@ -810,8 +810,8 @@
 3168903,Tiros,tiros,Patos de Minas,patos de minas
 3169000,Tocantins,tocantins,Ubá,uba
 3169059,Tocos do Moji,tocos do moji,Pouso Alegre,pouso alegre
-3169109,Toledo,toledo,Pouso Alegre,pouso alegre
-3169208,Tombos,tombos,Manhuaçu,manhuacu
+3169109,Toledo,toledo,,
+3169208,Tombos,tombos,Manhumirim,manhumirim
 3169307,Três Corações,tres coracoes,Varginha,varginha
 3169356,Três Marias,tres marias,Sete Lagoas,sete lagoas
 3169406,Três Pontas,tres pontas,Varginha,varginha

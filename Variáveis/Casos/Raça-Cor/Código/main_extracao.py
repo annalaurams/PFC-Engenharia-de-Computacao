@@ -1,8 +1,6 @@
-"""
-Automação para extração de dados do Registro Hospitalar de Câncer - INCA
-Localização primária: C50 MAMA | UF: Minas Gerais | Sexo: Feminino
-Linha: Procedência | Coluna: Raça/cor | Todos os anos disponíveis
-"""
+# Automação para extração de dados do Registro Hospitalar de Câncer - INCA
+# Localização primária: C50 MAMA | UF: Minas Gerais | Sexo: Feminino
+# Linha: Procedência | Coluna: Raça/cor | Todos os anos disponíveis
 
 import time
 import shutil
