@@ -1,4 +1,4 @@
-﻿codigo_ibge,municipio_original,municipio_normalizado,regional_original,regional_normalizada
+﻿CÓDIGO IBGE,MUNICÍPIO ORIGINAL,MUNICÍPIO NORMALIZADO,REGIONAL ORIGINAL,REGIONAL NORMALIZADA
 3100104,Abadia dos Dourados,abadia dos dourados,Uberlândia,uberlandia
 3100203,Abaeté,abaete,Sete Lagoas,sete lagoas
 3100302,Abre Campo,abre campo,Manhumirim,manhumirim
@@ -68,7 +68,7 @@
 3106309,Belo Oriente,belo oriente,Coronel Fabriciano,coronel fabriciano
 3106408,Belo Vale,belo vale,Belo Horizonte,belo horizonte
 3106507,Berilo,berilo,Diamantina,diamantina
-3106655,Berizal,berizal,,
+3106655,Berizal,berizal,Montes Claros,montes claros
 3106606,Bertópolis,bertopolis,Teófilo Otoni,teofilo otoni
 3106705,Betim,betim,Belo Horizonte,belo horizonte
 3106804,Bias Fortes,bias fortes,Juiz de Fora,juiz de fora
@@ -110,7 +110,7 @@
 3109907,Caetanópolis,caetanopolis,Sete Lagoas,sete lagoas
 3110004,Caeté,caete,Belo Horizonte,belo horizonte
 3110103,Caiana,caiana,Manhumirim,manhumirim
-3110202,Cajuri,cajuri,,
+3110202,Cajuri,cajuri,Ponte Nova,ponte nova
 3110301,Caldas,caldas,Pouso Alegre,pouso alegre
 3110400,Camacho,camacho,Divinópolis,divinopolis
 3110509,Camanducaia,camanducaia,Pouso Alegre,pouso alegre
@@ -179,7 +179,7 @@
 3116159,Chapada Gaúcha,chapada gaucha,Unaí,unai
 3116209,Chiador,chiador,Juiz de Fora,juiz de fora
 3116308,Cipotânea,cipotanea,Barbacena,barbacena
-3116407,Claraval,claraval,,
+3116407,Claraval,claraval,Passos,passos
 3116506,Claro dos Poções,claro dos pocoes,Montes Claros,montes claros
 3116605,Cláudio,claudio,Divinópolis,divinopolis
 3116704,Coimbra,coimbra,Ubá,uba
@@ -203,7 +203,7 @@
 3118205,Conquista,conquista,Uberaba,uberaba
 3118304,Conselheiro Lafaiete,conselheiro lafaiete,Barbacena,barbacena
 3118403,Conselheiro Pena,conselheiro pena,Governador Valadares,governador valadares
-3118502,Consolação,consolacao,,
+3118502,Consolação,consolacao,Pouso Alegre,pouso alegre
 3118601,Contagem,contagem,Belo Horizonte,belo horizonte
 3118700,Coqueiral,coqueiral,Varginha,varginha
 3118809,Coração de Jesus,coracao de jesus,Montes Claros,montes claros
@@ -247,7 +247,7 @@
 3122108,Divino das Laranjeiras,divino das laranjeiras,Governador Valadares,governador valadares
 3122207,Divinolândia de Minas,divinolandia de minas,Governador Valadares,governador valadares
 3122306,Divinópolis,divinopolis,Divinópolis,divinopolis
-3122355,Divisa Alegre,divisa alegre,,
+3122355,Divisa Alegre,divisa alegre,Pedra Azul,pedra azul
 3122405,Divisa Nova,divisa nova,Alfenas,alfenas
 3122454,Divisópolis,divisopolis,Pedra Azul,pedra azul
 3122470,Dom Bosco,dom bosco,Unaí,unai
@@ -256,12 +256,12 @@
 3122702,Dom Silvério,dom silverio,Ponte Nova,ponte nova
 3122801,Dom Viçoso,dom vicoso,Varginha,varginha
 3122900,Dona Euzébia,dona eusebia,Leopoldina,leopoldina
-3123007,Dores de Campos,dores de campos,,
+3123007,Dores de Campos,dores de campos,São João Del Rei,sao joao del rei
 3123106,Dores de Guanhães,dores de guanhaes,Itabira,itabira
 3123205,Dores do Indaiá,dores do indaia,Divinópolis,divinopolis
 3123304,Dores do Turvo,dores do turvo,Ubá,uba
 3123403,Doresópolis,doresopolis,Passos,passos
-3123502,Douradoquara,douradoquara,,
+3123502,Douradoquara,douradoquara,Uberlândia,uberlandia
 3123528,Durandé,durande,Manhumirim,manhumirim
 3123601,Elói Mendes,eloi mendes,Varginha,varginha
 3123700,Engenheiro Caldas,engenheiro caldas,Governador Valadares,governador valadares
@@ -315,7 +315,7 @@
 3127602,Gouveia,gouveia,Diamantina,diamantina
 3127701,Governador Valadares,governador valadares,Governador Valadares,governador valadares
 3127800,Grão Mogol,grao mogol,Montes Claros,montes claros
-3127909,Grupiara,grupiara,,
+3127909,Grupiara,grupiara,Uberlândia,uberlandia
 3128006,Guanhães,guanhaes,Itabira,itabira
 3128105,Guapé,guape,Passos,passos
 3128204,Guaraciaba,guaraciaba,Ponte Nova,ponte nova
@@ -496,7 +496,7 @@
 3142908,Monte Azul,monte azul,Montes Claros,montes claros
 3143005,Monte Belo,monte belo,Alfenas,alfenas
 3143104,Monte Carmelo,monte carmelo,Uberlândia,uberlandia
-3143153,Monte Formoso,monte formoso,,
+3143153,Monte Formoso,monte formoso,Pedra Azul,pedra azul
 3143203,Monte Santo de Minas,monte santo de minas,Passos,passos
 3143401,Monte Sião,monte siao,Pouso Alegre,pouso alegre
 3143302,Montes Claros,montes claros,Montes Claros,montes claros
@@ -556,7 +556,7 @@
 3147402,Paraopeba,paraopeba,Sete Lagoas,sete lagoas
 3147600,Passa Quatro,passa quatro,Varginha,varginha
 3147709,Passa Tempo,passa tempo,Divinópolis,divinopolis
-3147808,Passa Vinte,passa vinte,,
+3147808,Passa Vinte,passa vinte,Juiz de Fora,juiz de fora
 3147501,Passabém,passabem,Itabira,itabira
 3147907,Passos,passos,Passos,passos
 3147956,Patis,patis,Januária,januaria
@@ -702,7 +702,7 @@
 3160207,Santo Antônio do Itambé,santo antonio do itambe,Diamantina,diamantina
 3160306,Santo Antônio do Jacinto,santo antonio do jacinto,Pedra Azul,pedra azul
 3160405,Santo Antônio do Monte,santo antonio do monte,Divinópolis,divinopolis
-3160454,Santo Antônio do Retiro,santo antonio do retiro,,
+3160454,Santo Antônio do Retiro,santo antonio do retiro,Montes Claros,montes claros
 3160504,Santo Antônio do Rio Abaixo,santo antonio do rio abaixo,Itabira,itabira
 3160603,Santo Hipólito,santo hipolito,Sete Lagoas,sete lagoas
 3160702,Santos Dumont,santos dumont,Juiz de Fora,juiz de fora
@@ -800,7 +800,7 @@
 3168002,Taiobeiras,taiobeiras,Montes Claros,montes claros
 3168051,Taparuba,taparuba,Manhumirim,manhumirim
 3168101,Tapira,tapira,Uberaba,uberaba
-3168200,Tapiraí,tapirai,,
+3168200,Tapiraí,tapirai,Divinópolis,divinopolis
 3168309,Taquaraçu de Minas,taquaracu de minas,Belo Horizonte,belo horizonte
 3168408,Tarumirim,tarumirim,Governador Valadares,governador valadares
 3168507,Teixeiras,teixeiras,Ponte Nova,ponte nova
@@ -810,7 +810,7 @@
 3168903,Tiros,tiros,Patos de Minas,patos de minas
 3169000,Tocantins,tocantins,Ubá,uba
 3169059,Tocos do Moji,tocos do moji,Pouso Alegre,pouso alegre
-3169109,Toledo,toledo,,
+3169109,Toledo,toledo,Pouso Alegre,pouso alegre
 3169208,Tombos,tombos,Manhumirim,manhumirim
 3169307,Três Corações,tres coracoes,Varginha,varginha
 3169356,Três Marias,tres marias,Sete Lagoas,sete lagoas
