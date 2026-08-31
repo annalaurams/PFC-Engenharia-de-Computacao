@@ -5,7 +5,7 @@
 ```
 Mamografia/
 ├── Código/
-│   └── main.py   # script de extração via Selenium + requests
+│   └── main.py   # script de extração 
 └── Dados/
     └── mamografia_AAAA.csv   # um CSV por ano (2013-2025)
 ```

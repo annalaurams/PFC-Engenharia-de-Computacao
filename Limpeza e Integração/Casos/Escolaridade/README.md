@@ -5,7 +5,7 @@
 ```
 Escolaridade/
 ├── Código/
-│   └── main_extracao.py   # script de extração via Selenium
+│   └── main.py   # script de extração
 └── Dados/
     └── Escolaridade-AAAA.csv   # um CSV por ano
 ```
@@ -16,4 +16,4 @@ Extrai do TabNet do Registro Hospitalar de Câncer (RHC/INCA) o número de casos
 
 ## Resumo das operações
 
-`main_extracao.py` é uma cópia do script usado em `Casos/Ano Diagnóstico`, com a mesma sequência de navegação e preenchimento de formulário via Selenium/JavaScript, mudando apenas a dimensão selecionada na coluna do TabNet (Escolaridade em vez de Ano diagnóstico). Os mesmos filtros fixos se aplicam (sexo = Feminino, UF de procedência = MG, localização primária = C50). Para cada ano da lista, baixa o CSV gerado e salva em `Dados/` como `Escolaridade-<ano>.csv`.
+`main.py` é uma cópia do script usado em `Casos/Ano Diagnóstico`, com a mesma sequência de navegação e preenchimento de formulário via Selenium/JavaScript, mudando apenas a dimensão selecionada na coluna do TabNet (Escolaridade em vez de Ano diagnóstico). Os mesmos filtros fixos se aplicam (sexo = Feminino, UF de procedência = MG, localização primária = C50). Para cada ano da lista, baixa o CSV gerado e salva em `Dados/` como `Escolaridade-<ano>.csv`.

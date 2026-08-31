@@ -5,7 +5,7 @@
 ```
 Raça-Cor/
 ├── Código/
-│   └── main_extracao.py   # script de extração via Selenium
+│   └── main.py   # script de extração 
 └── Dados/
     └── RacaCor-AAAA.csv   # um CSV por ano
 ```
@@ -16,4 +16,4 @@ Extrai do TabNet do Registro Hospitalar de Câncer (RHC/INCA) o número de casos
 
 ## Resumo das operações
 
-`main_extracao.py` segue a mesma estrutura dos demais scripts de `Casos` (navegação e preenchimento do formulário do TabNet via Selenium/JavaScript), selecionando Raça-Cor como dimensão da coluna. Os filtros fixos (sexo = Feminino, UF de procedência = MG, localização primária = C50) e a lista de anos são os mesmos usados nos outros scripts de `Casos`. Cada CSV baixado é salvo em `Dados/` como `RacaCor-<ano>.csv`.
+`main.py` segue a mesma estrutura dos demais scripts de `Casos` (navegação e preenchimento do formulário do TabNet via Selenium/JavaScript), selecionando Raça-Cor como dimensão da coluna. Os filtros fixos (sexo = Feminino, UF de procedência = MG, localização primária = C50) e a lista de anos são os mesmos usados nos outros scripts de `Casos`. Cada CSV baixado é salvo em `Dados/` como `RacaCor-<ano>.csv`.

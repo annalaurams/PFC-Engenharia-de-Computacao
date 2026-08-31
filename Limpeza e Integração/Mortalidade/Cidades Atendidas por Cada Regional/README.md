@@ -4,8 +4,7 @@
 
 ```
 Cidades Atendidas por Cada Regional/
-├── main_extracao.py                          # extração cidade a cidade (uso interativo)
-├── main_extracao_municipios_faltantes.py      # extração em lote de municípios sem regional
+├── main.py                          # extração cidade a cidade 
 └── <Regional>/                                # uma subpasta por Unidade Regional de Saúde (28 regionais)
     └── <Município-UF>/                        # uma subpasta por município atendido por aquela regional
         └── AAAA-<Município>-UF.csv            # um CSV por ano com mortes registradas
@@ -19,6 +18,4 @@ Extrai do Atlas de Mortalidade por Câncer (INCA) o número de óbitos por cânc
 
 ## Resumo das operações
 
-`main_extracao.py` abre com Selenium a consulta do Atlas de Mortalidade (`inca.gov.br/MortalidadeWeb`), aplica os filtros fixos (sexo feminino, localização primária C50-MAMA, nível de localidade = município, região = Sudeste, estado = MG, faixa etária completa) e seleciona a regional de saúde e o município configurados no topo do arquivo (variáveis `CIDADE` e `REGIONAL_SAUDE`, editadas manualmente antes de cada execução). Depois de o usuário confirmar os filtros na tela, o script percorre a lista de anos definida em `PERIODO`, seleciona o intervalo de um ano por vez, aciona os botões "OK" e "Gerar CSV" (com múltiplas estratégias de localização de botão e novas tentativas em caso de falha), aguarda o download e move o CSV para a subpasta `<Regional>/<Município-UF>/` com o nome `<ano>-<Município>-<UF>.csv`. O script trata casos de "sem resultado" e reinicia o navegador se a sessão cair.
-
-`main_extracao_municipios_faltantes.py` é uma variação do script acima para lidar com municípios que ficaram sem nenhum registro de mortalidade e por isso não puderam ser associados a uma regional em `tabela_municipios_regionais.csv` (ver `municipios_tratamento.ipynb` na etapa de Seleção e Transformação). Em vez de uma cidade fixa, percorre uma lista de municípios com a regional já conferida manualmente um a um, restrita a um conjunto de anos específicos (não o período completo 1979-2024), salvando os CSVs no mesmo padrão de pastas.
+`main.py` abre com Selenium a consulta do Atlas de Mortalidade (`inca.gov.br/MortalidadeWeb`), aplica os filtros fixos (sexo feminino, localização primária C50-MAMA, nível de localidade = município, região = Sudeste, estado = MG, faixa etária completa) e seleciona a regional de saúde e o município configurados no topo do arquivo (variáveis `CIDADE` e `REGIONAL_SAUDE`, editadas manualmente antes de cada execução). Depois de o usuário confirmar os filtros na tela, o script percorre a lista de anos definida em `PERIODO`, seleciona o intervalo de um ano por vez, aciona os botões "OK" e "Gerar CSV" (com múltiplas estratégias de localização de botão e novas tentativas em caso de falha), aguarda o download e move o CSV para a subpasta `<Regional>/<Município-UF>/` com o nome `<ano>-<Município>-<UF>.csv`. O script trata casos de "sem resultado" e reinicia o navegador se a sessão cair.
