@@ -27,9 +27,19 @@ import requests
 URL = "https://tabnet.datasus.gov.br/cgi/dhdat.exe?siscan/mamografia_atendmg.def"
 
 DEFAULT_DOWNLOAD_DIR = os.path.expanduser("~/Downloads")
-DEFAULT_OUTPUT_DIR = "/home/anna/tcc/Variáveis/Mamografia/Dados"
+DEFAULT_OUTPUT_DIR = "/home/anna/tcc/Limpeza e Integração/Mamografia/Dados"
 
-ANOS_PADRAO = list(range(date.today().year - 1, 2012, -1))
+# Filtros aplicados na consulta (TABNET/SISCAN):
+FILTRO_LINHA = "Munic.da un.saúde"
+FILTRO_COLUNA = "Faixa etária"
+FILTRO_CONTEUDO = "Exames"
+FILTRO_SEXO = "Feminino"
+FILTRO_RACA_COR = "Todas as categorias"
+FILTRO_ESCOLARIDADE = "Todas as categorias"
+
+# 2012 = primeiro ano com série completa disponível no SISCAN para este tabulador
+ANO_INICIAL_SERIE = 2012
+ANOS_PADRAO = list(range(date.today().year - 1, ANO_INICIAL_SERIE, -1))
 
 # ________________________________________________________________________________
 # Extração: Funções auxiliares
@@ -223,23 +233,23 @@ def baixar_csv_por_ano(
     # ________________________________________________________________________________
     # Extração: Preenchimento dos filtros
 
-    _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "L"))), "Munic.da un.saúde")
-    _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "C"))), "Faixa etária")
-    _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "I"))), "Exames")
+    _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "L"))), FILTRO_LINHA)
+    _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "C"))), FILTRO_COLUNA)
+    _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "I"))), FILTRO_CONTEUDO)
     _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "A"))), str(ano))
 
     try:
-        _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "S8"))), "Feminino")
+        _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "S8"))), FILTRO_SEXO)
     except (TimeoutException, NoSuchElementException):
         pass
 
     try:
-        _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "S1"))), "Todas as categorias")
+        _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "S1"))), FILTRO_RACA_COR)
     except (TimeoutException, NoSuchElementException):
         pass
 
     try:
-        _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "S7"))), "Todas as categorias")
+        _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "S7"))), FILTRO_ESCOLARIDADE)
     except (TimeoutException, NoSuchElementException):
         pass
 
@@ -338,6 +348,9 @@ def main() -> int:
         driver.quit()
 
     if errors:
+        print("\nAnos com erro:")
+        for year, msg in errors:
+            print(f"  {year}: {msg}")
         return 1
 
     return 0

@@ -18,10 +18,17 @@ from webdriver_manager.chrome import ChromeDriverManager
 # Extração: Configuração de pastas e variáveis
 
 DOWNLOADS_DIR = Path("/home/anna/Downloads")
-OUTPUT_DIR = Path("/home/anna/Downloads/INCA_RacaCor_MG")
+OUTPUT_DIR = Path("/home/anna/tcc/Limpeza e Integração/Casos/Raça-Cor/Dados")
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 BASE_URL = "https://irhc.inca.gov.br/RHCNet/visualizaTabNetExterno.action"
+
+# Filtros aplicados na consulta (RHC-INCA):
+LINHA_ID = "12"        # Procedência
+COLUNA_ID = "13"       # Raça/cor
+SEXO_ID = "2"           # Feminino
+UF_PROCEDENCIA = "MG"   # Minas Gerais
+LOCALIZACAO_PRIMARIA = "C50"  # C50 = Mama
 
 ANOS = [
     2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015, 2014,
@@ -164,8 +171,8 @@ def navegar_ate_formulario(driver):
 def preencher_formulario(driver, ano: int):
     WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, "linha")))
 
-    js_set_select_by_id(driver, "linha", "12")
-    js_set_select_by_id(driver, "coluna", "13")
+    js_set_select_by_id(driver, "linha", LINHA_ID)
+    js_set_select_by_id(driver, "coluna", COLUNA_ID)
     driver.execute_script("""
         var sel = document.getElementById('periodo');
         for (var i = 0; i < sel.options.length; i++) sel.options[i].selected = false;
@@ -179,44 +186,45 @@ def preencher_formulario(driver, ano: int):
     """, str(ano))
     time.sleep(0.5)
 
-    js_set_select_by_id(driver, "sexo", "2")
+    js_set_select_by_id(driver, "sexo", SEXO_ID)
 
-    res = js_set_select_by_td_label(driver, "UF de procedência", "MG")
+    res = js_set_select_by_td_label(driver, "UF de procedência", UF_PROCEDENCIA)
     if "NAO" in res:
         driver.execute_script("""
             for (var s of document.querySelectorAll('select')) {
                 for (var o of s.options) {
-                    if (o.value === 'MG') {
-                        s.value = 'MG';
+                    if (o.value === arguments[0]) {
+                        s.value = arguments[0];
                         s.dispatchEvent(new Event('change', {bubbles:true}));
                         return 'fallback OK';
                     }
                 }
             }
-        """)
+        """, UF_PROCEDENCIA)
     time.sleep(0.5)
 
     js_set_select_by_td_label(driver, "Procedência", "")
     time.sleep(0.5)
 
+    # Raça/cor: coluna do tabulador, valor vazio = "Todas as categorias"
     js_set_select_by_id(driver, "racaCor", "")
     time.sleep(0.5)
 
-    res = js_set_select_by_td_label(driver, "Localização primária", "C50")
+    res = js_set_select_by_td_label(driver, "Localização primária", LOCALIZACAO_PRIMARIA)
 
     if "OPCAO_NAO_ENCONTRADA" in res or "NAO" in res:
         time.sleep(4)
         driver.execute_script("""
             for (var s of document.querySelectorAll('select')) {
                 for (var o of s.options) {
-                    if (o.value === 'C50') {
-                        s.value = 'C50';
+                    if (o.value === arguments[0]) {
+                        s.value = arguments[0];
                         s.dispatchEvent(new Event('change', {bubbles:true}));
                         return 'OK';
                     }
                 }
             }
-        """)
+        """, LOCALIZACAO_PRIMARIA)
 
     time.sleep(1)
 
@@ -258,6 +266,8 @@ def voltar_formulario(driver):
 
 def main():
     driver = make_driver()
+    anos_baixados = []
+    anos_com_erro = []
 
     try:
         navegar_ate_formulario(driver)
@@ -268,8 +278,11 @@ def main():
                 clicar_mostra(driver)
                 baixar_csv(driver, ano)
                 voltar_formulario(driver)
+                anos_baixados.append(ano)
 
             except Exception as e:
+                print(f"[ERRO] Ano {ano}: {e}")
+                anos_com_erro.append(ano)
                 try:
                     voltar_formulario(driver)
                 except Exception:
@@ -279,10 +292,12 @@ def main():
                     except Exception:
                         break
 
-        arquivos = sorted(OUTPUT_DIR.glob("RacaCor-*.csv"))
-
     finally:
         driver.quit()
+
+    print(f"\nBaixados com sucesso: {sorted(anos_baixados)}")
+    if anos_com_erro:
+        print(f"Com erro: {sorted(anos_com_erro)}")
 
 
 if __name__ == "__main__":

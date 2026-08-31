@@ -25,14 +25,23 @@ PERIODO = [
 ]
 
 DOWNLOADS_PATH = "/home/anna/Downloads"
-BASE_PROJECT_PATH = "/home/anna/tcc/variaveis/Variáveis 1/Cidades Atendidas por Cada Regional/Unaí"
+BASE_PROJECT_PATH = "/home/anna/tcc/Limpeza e Integração/Mortalidade/Cidades Atendidas por Cada Regional"
 PASTA_DESTINO_CIDADE = os.path.join(BASE_PROJECT_PATH, f"{CIDADE}-{UF}")
 os.makedirs(PASTA_DESTINO_CIDADE, exist_ok=True)
 
 URL = "https://www.inca.gov.br/MortalidadeWeb/pages/Modelo10/consultar.xhtml"
 MAX_TENTATIVAS = 3
 
-os.system("cls" if os.name == "nt" else "clear")
+# Filtros aplicados na consulta (Mortalidade Web - INCA):
+SEXO_ID = "2"              # Feminino
+LOCALIZACAO_PRIMARIA_TEXTO = "C50 - MAMA"
+NIVEL_LOCALIDADE_ID = "5"  # Município
+REGIAO_ID = "3"            # Sudeste
+ESTADO_ID = "17"           # Minas Gerais
+TIPO_LINHA_ID = "2"        # Linha do tabulador = Ano do óbito
+TIPO_COLUNA_ID = "2"       # Coluna do tabulador = Município
+FAIXA_ETARIA_INICIAL = "0"
+FAIXA_ETARIA_FINAL = "999"  # sem limite superior (todas as idades)
 
 # ________________________________________________________________________________
 # Utilidades
@@ -113,6 +122,28 @@ def aguardar_ajax(driver, timeout=10):
     except Exception:
         pass
 
+def aguardar_resultado_ou_erro(driver, timeout=40):
+    def condicao(d):
+        try:
+            painel = d.find_element(By.ID, "panelResultado")
+            if painel.text.strip():
+                return True
+        except Exception:
+            pass
+        try:
+            msg = d.find_element(By.ID, "formModeloTabulador:msgCamposVazios")
+            if msg.text.strip():
+                return True
+        except Exception:
+            pass
+        return False
+
+    try:
+        WebDriverWait(driver, timeout).until(condicao)
+    except TimeoutException:
+        pass
+
+
 def verificar_erro_campos_obrigatorios(driver):
     try:
         elemento = driver.find_element(By.ID, "formModeloTabulador:msgCamposVazios")
@@ -139,24 +170,24 @@ def verificar_sem_resultado(driver):
 
 def aplicar_filtros(driver, wait):
     try:
-        select_by_id(driver, "formModeloTabulador:comboSexo", "2")
+        select_by_id(driver, "formModeloTabulador:comboSexo", SEXO_ID)
         time.sleep(2)
 
         wait.until(
-            EC.element_to_be_clickable((By.XPATH, "//li[contains(text(),'C50 - MAMA')]"))
+            EC.element_to_be_clickable((By.XPATH, f"//li[contains(text(),'{LOCALIZACAO_PRIMARIA_TEXTO}')]"))
         ).click()
         time.sleep(1)
 
         driver.find_element(By.CLASS_NAME, "ui-picklist-button-add").click()
         time.sleep(2)
 
-        select_by_id(driver, "formModeloTabulador:nivelLocalidade", "5")
+        select_by_id(driver, "formModeloTabulador:nivelLocalidade", NIVEL_LOCALIDADE_ID)
         time.sleep(3)
 
-        select_by_id(driver, "formModeloTabulador:regiao", "3")
+        select_by_id(driver, "formModeloTabulador:regiao", REGIAO_ID)
         time.sleep(3)
 
-        select_by_id(driver, "formModeloTabulador:estado", "17")
+        select_by_id(driver, "formModeloTabulador:estado", ESTADO_ID)
         time.sleep(3)
 
         select_by_id(driver, "formModeloTabulador:regionalSaude", REGIONAL_SAUDE, by="text")
@@ -181,22 +212,22 @@ def aplicar_filtros(driver, wait):
         driver.find_element(By.ID, "formModeloTabulador:add").click()
         time.sleep(3)
 
-        select_by_name(driver, "formModeloTabulador:j_idt155", "2")
+        select_by_name(driver, "formModeloTabulador:j_idt155", TIPO_LINHA_ID)
         time.sleep(1)
         aguardar_ajax(driver)
         time.sleep(2)
 
-        select_by_id(driver, "formModeloTabulador:opcaoColuna", "2")
+        select_by_id(driver, "formModeloTabulador:opcaoColuna", TIPO_COLUNA_ID)
         aguardar_ajax(driver, timeout=15)
         time.sleep(3)
 
         try:
-            select_by_id(driver, "formModeloTabulador:idadeFaixaIni", "0")
+            select_by_id(driver, "formModeloTabulador:idadeFaixaIni", FAIXA_ETARIA_INICIAL)
         except Exception:
             pass
 
         try:
-            select_by_id(driver, "formModeloTabulador:idadeFaixaFim", "999")
+            select_by_id(driver, "formModeloTabulador:idadeFaixaFim", FAIXA_ETARIA_FINAL)
         except Exception:
             pass
 
@@ -314,8 +345,6 @@ def executar():
         driver.quit()
         return
 
-    input("\nVerifique os filtros e pressione ENTER para iniciar os downloads\n")
-
     anos_baixados = []
     anos_sem_dados = []
     indice_ano = 0
@@ -359,7 +388,7 @@ def executar():
             if not clicar_ok_com_retry(driver, wait):
                 raise Exception("Falha ao clicar no botão OK após múltiplas tentativas")
 
-            time.sleep(20)
+            aguardar_resultado_ou_erro(driver)
 
             if verificar_erro_campos_obrigatorios(driver):
                 log_status(ano, "Erro de campos obrigatórios! Reconfigurando...", "ERRO")
@@ -376,7 +405,7 @@ def executar():
                 log_status(ano, "Sem dados (1ª verificação). Tentando novamente...", "AVISO")
                 if not clicar_ok_com_retry(driver, wait):
                     raise Exception("Falha ao clicar no botão OK na 2ª tentativa")
-                time.sleep(15)
+                aguardar_resultado_ou_erro(driver)
 
                 if verificar_erro_campos_obrigatorios(driver):
                     log_status(ano, "Erro de campos obrigatórios! Reconfigurando...", "ERRO")
@@ -436,16 +465,7 @@ def executar():
             log_status(ano, f"Erro: {erro_msg[:80]}", "ERRO")
             tentativas_erro += 1
 
-            if any(
-                p in erro_msg
-                for p in [
-                    "Connection refused",
-                    "HTTPConnectionPool",
-                    "invalid session",
-                    "Session",
-                    "chrome not reachable",
-                ]
-            ):
+            if not driver_esta_ativo(driver):
                 log_status(ano, "Driver/conexão perdida. Reiniciando...", "ERRO")
                 try:
                     driver.quit()
@@ -507,4 +527,5 @@ def executar():
 
 
 if __name__ == "__main__":
+    os.system("cls" if os.name == "nt" else "clear")
     executar()
