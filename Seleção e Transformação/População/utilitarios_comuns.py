@@ -14,21 +14,22 @@ COLUNA_TAXA = "TAXA_POR_100_MIL"
 
 PREFIXO_COLUNA_TOTAL_ANO = "TOTAL_"
 SUFIXO_COLUNA_TOTAL = "_TOTAL"
-SUFIXO_COLUNA_QUANTIDADE = "_QUANTIDADE"
+SUFIXO_COLUNA_TAXA = "_TAXA"
 SUFIXO_COLUNA_POPULACAO_AGREGADA = "_POPULACAO"
 MULTIPLICADOR_TAXA = 100_000
 
 POPULACAO_MINIMA_VALIDA = 1
 
-# Localizado a partir do próprio arquivo (não de um caminho absoluto
-# fixo) -- funciona em qualquer clone do repositório, não só em
-# /home/anna/tcc. PASTA_POPULACAO é a pasta onde este módulo mora
-# (Seleção e Transformação/População); os demais caminhos compartilhados
-# derivam dela.
+# Faixas etárias decenais padronizadas, usadas tanto nas bases de eventos
+# (Casos por Faixa Etária, Mortalidade, Mamografia) quanto na base de
+# população -- permite casar coluna de evento com a coluna de população da
+# mesma faixa e ano, em vez de sempre usar a população total como denominador.
+FAIXAS_ETARIAS_PADRAO = ("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70 OU MAIS")
+
 PASTA_POPULACAO = Path(__file__).resolve().parent
 PASTA_SELECAO_TRANSFORMACAO = PASTA_POPULACAO.parent
 
-CAMINHO_POPULACAO = PASTA_POPULACAO / "populacao_interpolacao_extrapolacao.csv"
+CAMINHO_POPULACAO = PASTA_POPULACAO / "Interpolação e Extrapolação" / "populacao_interpolacao_extrapolacao.csv"
 
 
 def registrar_log(mensagem):
@@ -50,7 +51,6 @@ def normalizar_regional(serie_regional):
         return "".join(caractere for caractere in texto_sem_acento if not unicodedata.combining(caractere))
 
     return serie_regional.apply(_normalizar)
-
 
 def extrair_ano_da_coluna(nome_da_coluna):
     if nome_da_coluna.startswith(PREFIXO_COLUNA_TOTAL_ANO):
@@ -81,7 +81,7 @@ def selecionar_colunas_de_valor(tabela, ano_inicial, ano_final, colunas_a_ignora
         if coluna in colunas_a_ignorar:
             continue
 
-        if coluna.endswith(SUFIXO_COLUNA_QUANTIDADE) or coluna.endswith(SUFIXO_COLUNA_POPULACAO_AGREGADA):
+        if coluna.endswith(SUFIXO_COLUNA_TAXA) or coluna.endswith(SUFIXO_COLUNA_POPULACAO_AGREGADA):
             continue
         if somente_total and not coluna.endswith(SUFIXO_COLUNA_TOTAL):
             continue
@@ -156,57 +156,52 @@ def carregar_populacao_por_regional():
     )
 
 
-# Especificações de cada variável -- caminho de entrada, período e
-# nome do CSV de taxa gerado por calculo_taxa.ipynb. Fonte única: os
-# notebooks de gráfico (grafico_taxa_por_ano.ipynb,
-# grafico_taxa_por_regional.ipynb) leem NOME_ARQUIVO_SAIDA_TAXA daqui
-# em vez de repetir os nomes de arquivo -- um nome trocado aqui não
-# precisa ser caçado em cada notebook que consome o CSV.
+# Especificações de cada variável -- caminho de entrada, período e nome do arquivo de saída da taxa. 
 
 ESPECIFICACOES_VARIAVEIS = {
     "Casos": {
-        "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Casos" / "incidencia _ano_diagnostico.csv",
+        "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Casos" / "tabela_casos_por_ano_de_diagnóstico.csv",
         "ANO_INICIAL": 1985,
         "ANO_FINAL": 2023,
-        "NOME_ARQUIVO_SAIDA_TAXA": "casos_ano_diagnostico_taxa.csv",
+        "NOME_ARQUIVO_SAIDA_TAXA": "tabela_casos_por_ano_de_diagnóstico_taxa.csv",
     },
     "Mortalidade": {
-        "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Mortalidade" / "tabela_mortalidade_faixa_etaria.csv",
+        "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Mortalidade" / "tabela_mortes_por_faixa_etária.csv",
         "ANO_INICIAL": 1979,
         "ANO_FINAL": 2024,
-        "NOME_ARQUIVO_SAIDA_TAXA": "mortalidade_taxa.csv",
+        "NOME_ARQUIVO_SAIDA_TAXA": "tabela_mortes_por_faixa_etária_taxa.csv",
     },
     "Mamografia": {
-        "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Mamografias" / "tabela_mamografia.csv",
+        "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Mamografias" / "tabela_mamografias_por_faixa_etária.csv",
         "ANO_INICIAL": 2013,
         "ANO_FINAL": 2025,
-        "NOME_ARQUIVO_SAIDA_TAXA": "mamografia_taxa.csv",
+        "NOME_ARQUIVO_SAIDA_TAXA": "tabela_mamografias_por_faixa_etária_taxa.csv",
     },
     "Hospitais": {
         "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Hospitais" / "tabela_hospitais_habilitados.csv",
         "ANO_INICIAL": 2023,
         "ANO_FINAL": 2023,
-        "NOME_ARQUIVO_SAIDA_TAXA": "hospitais_taxa.csv",
+        "NOME_ARQUIVO_SAIDA_TAXA": "tabela_hospitais_habilitados_taxa.csv",
     },
 }
 
 ESPECIFICACOES_VARIAVEIS_CATEGORICAS = {
     "Casos por Escolaridade": {
-        "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Casos" / "incidencia _escolaridade.csv",
+        "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Casos" / "tabela_casos_por_escolaridade.csv",
         "ANO_INICIAL": 1998,
         "ANO_FINAL": 2023,
-        "NOME_ARQUIVO_SAIDA_TAXA": "casos_escolaridade_taxa.csv",
+        "NOME_ARQUIVO_SAIDA_TAXA": "tabela_casos_por_escolaridade_taxa.csv",
     },
     "Casos por Raça e Cor": {
-        "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Casos" / "incidencia _raca_cor.csv",
+        "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Casos" / "tabela_casos_por_raça_e_cor.csv",
         "ANO_INICIAL": 1998,
         "ANO_FINAL": 2023,
-        "NOME_ARQUIVO_SAIDA_TAXA": "casos_raca_cor_taxa.csv",
+        "NOME_ARQUIVO_SAIDA_TAXA": "tabela_casos_por_raça_e_cor_taxa.csv",
     },
     "Casos por Faixa Etária": {
-        "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Casos" / "incidencia _faixa_etaria.csv",
+        "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Casos" / "tabela_casos_por_faixa_etária.csv",
         "ANO_INICIAL": 1985,
         "ANO_FINAL": 2023,
-        "NOME_ARQUIVO_SAIDA_TAXA": "casos_faixa_etaria_taxa.csv",
+        "NOME_ARQUIVO_SAIDA_TAXA": "tabela_casos_por_faixa_etária_taxa.csv",
     },
 }

@@ -1,0 +1,57 @@
+REGIONAL DE SAÚDE,TIPO,2023_TOTAL,2023_TOTAL_TAXA
+alfenas,ONCOLOGIA,1.0,0.42
+alfenas,RECONSTRUÇÃO MAMÁRIA,1.0,0.42
+alfenas,TODOS,2.0,0.84
+barbacena,ONCOLOGIA,1.0,0.38
+barbacena,TODOS,1.0,0.38
+belo horizonte,ONCOLOGIA,8.0,0.28
+belo horizonte,RECONSTRUÇÃO MAMÁRIA,6.0,0.21
+belo horizonte,TODOS,14.0,0.49
+coronel fabriciano,ONCOLOGIA,1.0,0.25
+coronel fabriciano,TODOS,1.0,0.25
+divinopolis,ONCOLOGIA,2.0,0.29
+divinopolis,RECONSTRUÇÃO MAMÁRIA,2.0,0.29
+divinopolis,TODOS,4.0,0.59
+governador valadares,ONCOLOGIA,1.0,0.3
+governador valadares,RECONSTRUÇÃO MAMÁRIA,1.0,0.3
+governador valadares,TODOS,2.0,0.61
+itabira,ONCOLOGIA,1.0,0.45
+itabira,RECONSTRUÇÃO MAMÁRIA,1.0,0.45
+itabira,TODOS,2.0,0.9
+juiz de fora,ONCOLOGIA,3.0,0.72
+juiz de fora,RECONSTRUÇÃO MAMÁRIA,3.0,0.72
+juiz de fora,TODOS,6.0,1.45
+montes claros,ONCOLOGIA,2.0,0.37
+montes claros,RECONSTRUÇÃO MAMÁRIA,1.0,0.18
+montes claros,TODOS,3.0,0.55
+passos,ONCOLOGIA,1.0,0.48
+passos,TODOS,1.0,0.48
+patos de minas,ONCOLOGIA,2.0,0.9
+patos de minas,TODOS,2.0,0.9
+ponte nova,ONCOLOGIA,1.0,0.57
+ponte nova,RECONSTRUÇÃO MAMÁRIA,1.0,0.57
+ponte nova,TODOS,2.0,1.14
+pouso alegre,ONCOLOGIA,4.0,0.75
+pouso alegre,RECONSTRUÇÃO MAMÁRIA,1.0,0.19
+pouso alegre,TODOS,5.0,0.94
+sao joao del rei,ONCOLOGIA,1.0,0.8
+sao joao del rei,RECONSTRUÇÃO MAMÁRIA,1.0,0.8
+sao joao del rei,TODOS,2.0,1.61
+sete lagoas,ONCOLOGIA,2.0,0.63
+sete lagoas,RECONSTRUÇÃO MAMÁRIA,1.0,0.31
+sete lagoas,TODOS,3.0,0.94
+teofilo otoni,ONCOLOGIA,2.0,0.84
+teofilo otoni,RECONSTRUÇÃO MAMÁRIA,1.0,0.42
+teofilo otoni,TODOS,3.0,1.26
+uba,ONCOLOGIA,1.0,0.42
+uba,RECONSTRUÇÃO MAMÁRIA,1.0,0.42
+uba,TODOS,3.0,1.25
+uba,TRATAMENTO SINCRÔNICO,1.0,0.42
+uberaba,ONCOLOGIA,2.0,0.49
+uberaba,RECONSTRUÇÃO MAMÁRIA,2.0,0.49
+uberaba,TODOS,4.0,0.99
+uberlandia,ONCOLOGIA,3.0,0.5
+uberlandia,RECONSTRUÇÃO MAMÁRIA,1.0,0.17
+uberlandia,TODOS,4.0,0.67
+varginha,ONCOLOGIA,1.0,0.22
+varginha,TODOS,1.0,0.22
