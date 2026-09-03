@@ -5,7 +5,8 @@
 ```
 Mortalidade/
 ├── mortalidade_tratamento.ipynb        # notebook de tratamento
-└── tabela_mortalidade_faixa_etaria.csv # mortes por município, ano e faixa etária
+├── conferir.ipynb                      # notebook avulso de conferência/checagem manual dos resultados
+└── tabela_mortes_por_faixa_etária.csv  # mortes por município, ano e faixa etária
 ```
 
 ## O que esta pasta faz

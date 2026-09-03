@@ -9,7 +9,7 @@ Projeto de Conclusão de Curso (Engenharia de Computação) que aplica a metodol
 tcc/
 ├── Limpeza e Integração/                   # 1. Coleta dos dados brutos
 ├── Seleção e Transformação/                # 2. Tratamento dos dados
-├── Mineração de Dados /                    # 3.  Algoritmo de agrupamento
+├── Mineração de Dados/                     # 3. Algoritmos de agrupamento (DBSCAN, KMeans)
 ├── Avaliação e Apresentação/               # 4. Análise exploratória dos dados brutos e populacionais
 ├── src/tcc/                                       # Pacote Python do projeto
 ├── pyproject.toml                                 # Dependências e configuração
@@ -64,8 +64,6 @@ tcc/
 
 ### Pré-requisitos
 
-### Pré-requisitos
-
 Antes de executar o projeto, é necessário ter o **Python 3.12+** e o **uv** instalados.
 
 #### 1. Python 3.12+
@@ -110,10 +108,10 @@ Isso cria o ambiente virtual do projeto e instala todas as dependências fixadas
 uv run jupyter notebook
 ```
 
-Em seguida, abra o notebook desejado dentro de `Seleção e Transformação/`, `Mineração de Dados - Avaliação e Apresentação/` ou `Limpeza e Integração/`.
+Em seguida, abra o notebook desejado dentro de `Limpeza e Integração/`, `Seleção e Transformação/`, `Mineração de Dados/` ou `Avaliação e Apresentação/`.
 
 ### Rodar um script Python específico
 
 ```bash
-uv run python "Tratamento/Casos/main.py"
+uv run python "Limpeza e Integração/Casos/Ano Diagnóstico/Código/main.py"
 ```

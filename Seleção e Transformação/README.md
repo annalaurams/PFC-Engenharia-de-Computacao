@@ -11,7 +11,7 @@ Seleção e Transformação/
 ├── Mamografias/
 ├── Mortalidade/
 ├── Municípios/
-└── População - Faixa Etária/
+└── População/
 ```
 
 ## O que cada subpasta faz
@@ -21,5 +21,5 @@ Seleção e Transformação/
 - **Mamografias**: consolida exames de mamografia por município, ano e faixa etária. Ver [Mamografias/README.md](Mamografias/README.md).
 - **Mortalidade**: consolida óbitos por câncer de mama por município, ano e faixa etária. Ver [Mortalidade/README.md](Mortalidade/README.md).
 - **Municípios**: junta a base territorial de municípios com a regional de saúde de cada um. Ver [Municípios/README.md](Munic%C3%ADpios/README.md).
-- **População - Faixa Etária**: consolida população por município/ano censitário, estima população para os demais anos e calcula taxas por 100 mil habitantes para as demais variáveis. Ver [População - Faixa Etária/README.md](Popula%C3%A7%C3%A3o%20-%20Faixa%20Et%C3%A1ria/README.md).
+- **População**: consolida população por município/ano censitário, estima população para os demais anos e calcula taxas por 100 mil habitantes para as demais variáveis. Ver [População/README.md](Popula%C3%A7%C3%A3o/README.md).
 

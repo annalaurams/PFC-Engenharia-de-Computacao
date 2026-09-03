@@ -19,4 +19,4 @@ Casos/
 
 ## Resumo das operações
 
-As quatro subpastas extraem dados do mesmo sistema, o TabNet do Registro Hospitalar de Câncer (RHC/INCA), filtrando sempre por câncer de mama (CID C50), sexo feminino e UF de procedência = MG. Cada subpasta usa um script de extração próprio (`Código/main_extracao.py`), praticamente idêntico entre si, mudando apenas a dimensão selecionada na coluna da consulta (ano diagnóstico, escolaridade, faixa etária ou raça-cor). Cada script percorre os anos disponíveis (1985-2023, com exceções de anos sem dados), baixa um CSV por ano via Selenium e salva em `Dados/`.
+As quatro subpastas extraem dados do mesmo sistema, o TabNet do Registro Hospitalar de Câncer (RHC/INCA), filtrando sempre por câncer de mama (CID C50), sexo feminino e UF de procedência = MG. Cada subpasta usa um script de extração próprio (`Código/main.py`), praticamente idêntico entre si, mudando apenas a dimensão selecionada na coluna da consulta (ano diagnóstico, escolaridade, faixa etária ou raça-cor). Cada script percorre os anos disponíveis (1985-2023, com exceções de anos sem dados), baixa um CSV por ano via Selenium e salva em `Dados/`.

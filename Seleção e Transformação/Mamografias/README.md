@@ -4,8 +4,8 @@
 
 ```
 Mamografias/
-├── mamografia_tratamento.ipynb  # notebook de tratamento
-└── tabela_mamografia.csv        # exames de mamografia por município, ano e faixa etária
+├── mamografia_tratamento.ipynb                # notebook de tratamento
+└── tabela_mamografias_por_faixa_etária.csv    # exames de mamografia por município, ano e faixa etária
 ```
 
 ## O que esta pasta faz

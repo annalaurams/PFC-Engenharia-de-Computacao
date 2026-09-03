@@ -4,8 +4,9 @@
 
 ```
 Municípios/
-├── municipios_tratamento.ipynb      # notebook de tratamento
-└── tabela_municipios_regionais.csv  # município, código IBGE e regional de saúde
+├── municipios_tratamento.ipynb       # notebook de tratamento
+├── listar_municipios_regional.py     # script avulso de conferência manual (lista municípios/população de uma regional fixa no código)
+└── tabela_municipios_regionais.csv   # município, código IBGE e regional de saúde
 ```
 
 ## O que esta pasta faz

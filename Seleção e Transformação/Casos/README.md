@@ -4,11 +4,11 @@
 
 ```
 Casos/
-├── casos_tratamento.ipynb           # notebook de tratamento
-├── incidencia _ano_diagnostico.csv  # casos por ano de diagnóstico e município
-├── incidencia _escolaridade.csv     # casos por escolaridade e município
-├── incidencia _faixa_etaria.csv     # casos por faixa etária e município
-└── incidencia _raca_cor.csv         # casos por raça-cor e município
+├── casos_tratamento.ipynb                       # notebook de tratamento
+├── tabela_casos_por_ano_de_diagnóstico.csv      # casos por ano de diagnóstico e município
+├── tabela_casos_por_escolaridade.csv            # casos por escolaridade e município
+├── tabela_casos_por_faixa_etária.csv            # casos por faixa etária e município
+└── tabela_casos_por_raça_e_cor.csv              # casos por raça-cor e município
 ```
 
 ## O que esta pasta faz
