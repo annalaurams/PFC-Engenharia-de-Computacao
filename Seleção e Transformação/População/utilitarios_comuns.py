@@ -10,9 +10,7 @@ COLUNA_ANO = "ANO"
 COLUNA_TIPO = "TIPO"
 COLUNA_QUANTIDADE = "QUANTIDADE"
 COLUNA_POPULACAO = "POPULACAO"
-COLUNA_TAXA = "TAXA_POR_100_MIL"
 
-PREFIXO_COLUNA_TOTAL_ANO = "TOTAL_"
 SUFIXO_COLUNA_TOTAL = "_TOTAL"
 SUFIXO_COLUNA_TAXA = "_TAXA"
 SUFIXO_COLUNA_POPULACAO_AGREGADA = "_POPULACAO"
@@ -53,9 +51,6 @@ def normalizar_regional(serie_regional):
     return serie_regional.apply(_normalizar)
 
 def extrair_ano_da_coluna(nome_da_coluna):
-    if nome_da_coluna.startswith(PREFIXO_COLUNA_TOTAL_ANO):
-        return int(nome_da_coluna.replace(PREFIXO_COLUNA_TOTAL_ANO, ""))
-
     ano_em_texto, separador, _ = nome_da_coluna.partition("_")
     if separador and ano_em_texto.isdigit():
         return int(ano_em_texto)
@@ -205,3 +200,24 @@ ESPECIFICACOES_VARIAVEIS_CATEGORICAS = {
         "NOME_ARQUIVO_SAIDA_TAXA": "tabela_casos_por_faixa_etária_taxa.csv",
     },
 }
+
+# Sufixo de coluna de cada variável dentro do CSV agregado estadual por
+# ano (NOME_ARQUIVO_AGREGADO_CATEGORICO_POR_ANO, gerado por
+# calculo_taxa.ipynb) -- todas as variáveis (simples e categóricas)
+# compartilham um único arquivo, formato "<ano>_<categoria>_<SUFIXO>"
+# (ex.: "1979_0-9_MORTES", "1985_TOTAL_CASOS"). "Casos por Escolaridade"
+# e "Casos por Raça e Cor" precisam de um sufixo próprio (em vez do
+# "CASOS" comum às demais quebras de Casos) porque as duas têm uma
+# categoria com o mesmo nome ("SEM INFORMAÇÃO") -- sem isso colidiriam
+# na mesma coluna.
+SUFIXO_VARIAVEL_ESTADUAL = {
+    "Casos": "CASOS",
+    "Mortalidade": "MORTES",
+    "Mamografia": "MAMOGRAFIAS",
+    "Hospitais": "HOSPITAIS",
+    "Casos por Escolaridade": "CASOS_ESCOLARIDADE",
+    "Casos por Raça e Cor": "CASOS_RACA_COR",
+    "Casos por Faixa Etária": "CASOS",
+}
+
+NOME_ARQUIVO_AGREGADO_CATEGORICO_POR_ANO = "tabela_regional_agregada_por_ano.csv"
