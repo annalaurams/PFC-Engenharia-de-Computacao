@@ -21,10 +21,10 @@ from sklearn.preprocessing import RobustScaler
 # ('Seleção e Transformação/População/utilitarios_comuns.py', a base
 # comum sob DBSCAN e KMeans) é reaproveitado.
 def _preparar_sys_path():
+    raiz_do_projeto = Path(__file__).resolve().parent.parent.parent
     candidatos = [
-        Path.cwd().parent.parent.parent / "Seleção e Transformação" / "População",
+        raiz_do_projeto / "Seleção e Transformação" / "População",
         Path.home() / "tcc" / "Seleção e Transformação" / "População",
-        Path("/home/anna/tcc/Seleção e Transformação/População"),
     ]
     pasta = next((p for p in candidatos if (p / "utilitarios_comuns.py").exists()), None)
     if pasta is None:
@@ -76,7 +76,7 @@ BLOCOS_DE_TAXA = [
 
 SLUGS_DE_CATEGORIA_DESCARTADOS = ("sem-informacao", "total")
 
-USAR_JANELA_COMUM = True
+USAR_JANELA_COMUM = False
 ANO_INICIAL_COMUM = 2013
 ANO_FINAL_COMUM = 2023
 
@@ -90,7 +90,7 @@ LIMIAR_MAXIMO_DE_NULOS_POR_COLUNA = 0.70
 # USAR_PCA=None (padrão): decide sozinho pela razão nº de atributos / nº de
 # linhas. USAR_PCA=True força PCA; USAR_PCA=False pula o PCA inteiramente
 # -- em ambos os casos o critério automático é ignorado.
-USAR_PCA = False
+USAR_PCA = True
 RAZAO_MAXIMA_ATRIBUTOS_POR_LINHA = 0.10
 VARIANCIA_EXPLICADA_ALVO = 0.85
 NUMERO_MAXIMO_DE_COMPONENTES = 10
@@ -101,7 +101,7 @@ VARIANCIA_PC1_ALERTA = 0.75
 
 # --- Escolha de k (cotovelo da curva de inércia, Thorndike, 1953) ---
 K_MINIMO = 2
-K_MAXIMO = 10  # teto da varredura -- ajuste conforme o tamanho da amostra
+K_MAXIMO = 15  # teto da varredura -- ajuste conforme o tamanho da amostra
 SENSIBILIDADE_COTOVELO = 1.0  # mesma convenção do parâmetro S do joelho de eps no DBSCAN
 SEMENTES_DA_BUSCA = [SEMENTE_ALEATORIA]  # mais de uma semente testa sensibilidade à inicialização
 NUMERO_DE_INICIALIZACOES = 10  # n_init do KMeans
@@ -256,17 +256,6 @@ def tratar_nulos_sem_imputar(matriz):
     return matriz_sem_nulos
 
 
-def descartar_colunas_constantes(matriz):
-    """Remove colunas com um único valor distinto -- variância zero não
-    contribui para a distância e quebra a padronização por IQR quando o
-    IQR é zero."""
-    colunas_constantes = matriz.columns[matriz.nunique(dropna=True) <= 1].tolist()
-    if colunas_constantes:
-        registrar_log(f"Descartada(s) {len(colunas_constantes)} coluna(s) constante(s): {colunas_constantes}")
-        matriz = matriz.drop(columns=colunas_constantes)
-    return matriz
-
-
 # Etapa 3: padronização e PCA
 def padronizar_e_reduzir(matriz, razao_maxima_atributos_por_linha=RAZAO_MAXIMA_ATRIBUTOS_POR_LINHA,
                           variancia_alvo=VARIANCIA_EXPLICADA_ALVO,
@@ -334,64 +323,7 @@ def pesos_das_variaveis_no_componente(pca, colunas, componente=1):
     return pesos.reindex(pesos.abs().sort_values(ascending=False).index)
 
 
-# Etapa 4: trajetória (uma coluna por categoria x ano, uma linha por Regional)
-def converter_blocos_em_proporcao(painel, prefixos):
-    """
-    Converte cada bloco (grupo de colunas do mesmo prefixo) em proporção
-    dentro do bloco, linha a linha -- para o porte da regional-ano não
-    dominar a distância euclidiana. Deve ser aplicado ANTES do colapso em
-    trajetória, para a proporção ser calculada dentro de cada
-    (bloco, regional, ano), não misturando anos diferentes.
-    """
-    painel = painel.copy()
-    for prefixo in prefixos:
-        colunas_do_bloco = [c for c in painel.columns if c.startswith(f"{prefixo}_")]
-        if not colunas_do_bloco:
-            continue
-        soma_da_linha = painel[colunas_do_bloco].sum(axis=1)
-        with np.errstate(invalid="ignore", divide="ignore"):
-            painel[colunas_do_bloco] = painel[colunas_do_bloco].div(soma_da_linha.replace(0, np.nan), axis=0)
-        registrar_log(f"Bloco '{prefixo}': {len(colunas_do_bloco)} coluna(s) convertida(s) em proporção.")
-    registrar_log(
-        "Observação: as proporções de um bloco somam 1, então a última categoria de cada bloco é "
-        "combinação linear das demais. O PCA absorve essa redundância, mas se você interpretar as "
-        "variáveis diretamente, considere descartar uma categoria de referência."
-    )
-    return painel
-
-
-def colapsar_painel_em_trajetoria(painel):
-    """
-    Painel (REGIONAL, ANO) x categoria -> trajetória: uma linha por
-    REGIONAL, uma coluna por (categoria, ano). O tempo não é colapsado em
-    média/tendência -- cada ano observado vira uma coluna própria,
-    preservando a série completa.
-    """
-    trajetoria = painel.unstack(COLUNA_ANO)
-    trajetoria.columns = [f"{categoria}_{ano}" for categoria, ano in trajetoria.columns]
-    n_regionais = trajetoria.shape[0]
-    n_variaveis = trajetoria.shape[1]
-    registrar_log(f"Trajetória: {n_regionais} regional(is) x {n_variaveis} variável(is) (categoria x ano).")
-    if n_variaveis > n_regionais - 1:
-        registrar_log(
-            f"ATENÇÃO: {n_variaveis} variáveis para {n_regionais} observações. O número máximo de "
-            f"componentes principais com informação é {n_regionais - 1} -- relate essa limitação na monografia."
-        )
-    return trajetoria
-
-
-def relatorio_de_ausentes(matriz):
-    """Proporção de ausentes/zeros por coluna, ordenada da mais ausente
-    para a menos -- para decidir o corte de MAXIMO_DE_AUSENTES_PARA_DESCARTAR
-    olhando a distribuição real, não às cegas."""
-    return pd.DataFrame({
-        "prop_ausente": matriz.isna().mean(),
-        "prop_zero": (matriz == 0).mean(),
-        "n_zero": (matriz == 0).sum(),
-    }).sort_values("prop_ausente", ascending=False)
-
-
-# Etapa 5: escolha de k (cotovelo da curva de inércia)
+# Etapa 4: escolha de k (cotovelo da curva de inércia)
 def calcular_inercia_e_silhueta_por_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXIMO,
                                        semente=SEMENTE_ALEATORIA, n_init=NUMERO_DE_INICIALIZACOES):
     """
@@ -401,6 +333,12 @@ def calcular_inercia_e_silhueta_por_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXI
     a silhueta entra como validação complementar.
     """
     limite_superior = min(k_maximo, len(matriz) - 1)
+    if k_minimo > limite_superior:
+        raise ValueError(
+            f"Nenhum k testável: k_minimo={k_minimo} > limite superior={limite_superior} "
+            f"(len(matriz)-1={len(matriz) - 1}). A amostra tem poucas linhas demais para a "
+            "faixa de k configurada -- reduza K_MINIMO ou aumente o tamanho da amostra."
+        )
     linhas = []
     for k in range(k_minimo, limite_superior + 1):
         modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init).fit(matriz)
@@ -445,6 +383,12 @@ def busca_em_grade_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXIMO, sementes=SEME
     """Validação complementar ao cotovelo: inércia e silhueta de cada
     combinação (k, semente) via ParameterGrid."""
     limite_superior = min(k_maximo, len(matriz) - 1)
+    if k_minimo > limite_superior:
+        raise ValueError(
+            f"Nenhum k testável: k_minimo={k_minimo} > limite superior={limite_superior} "
+            f"(len(matriz)-1={len(matriz) - 1}). A amostra tem poucas linhas demais para a "
+            "faixa de k configurada -- reduza K_MINIMO ou aumente o tamanho da amostra."
+        )
     grade = ParameterGrid({"k": range(k_minimo, limite_superior + 1), "semente": sementes})
 
     linhas = []
@@ -458,7 +402,7 @@ def busca_em_grade_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXIMO, sementes=SEME
     return pd.DataFrame(linhas).sort_values(["k", "semente"]).reset_index(drop=True)
 
 
-# Etapa 6: KMeans
+# Etapa 5: KMeans
 def executar_kmeans(matriz, k, semente=SEMENTE_ALEATORIA, n_init=NUMERO_DE_INICIALIZACOES):
     modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init).fit(matriz)
     return modelo.labels_, modelo
@@ -486,23 +430,6 @@ def diagnostico_tamanho_dos_clusters(rotulos, minimo=MINIMO_DE_ELEMENTOS_POR_CLU
             "pontos como atípicos na interpretação."
         )
     return tamanhos
-
-
-def diagnostico_por_regional(resultado, coluna_regional=COLUNA_REGIONAL):
-    """Uma linha por CLUSTER: quantas Regionais caem nele e quais --
-    equivalente a `montar_resumo_por_cluster` para o caso em que cada
-    linha já é uma Regional inteira (trajetória), sem par (Regional, Ano)."""
-    def _nomes(grupo):
-        return ", ".join(sorted(grupo[coluna_regional]))
-
-    resumo = resultado.groupby("CLUSTER").apply(
-        lambda grupo: pd.Series({"regionais": len(grupo), "nomes": _nomes(grupo)}),
-        include_groups=False,
-    ).reset_index().sort_values("CLUSTER").reset_index(drop=True)
-
-    for _, linha in resumo.iterrows():
-        registrar_log(f"Cluster {int(linha['CLUSTER'])} ({linha['regionais']}): {linha['nomes']}")
-    return resumo
 
 
 # Saídas finais em DataFrame

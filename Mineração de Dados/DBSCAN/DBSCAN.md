@@ -1,6 +1,6 @@
 # DBSCAN — como funciona e como foi implementado
 
-Este documento explica o algoritmo DBSCAN, como ele foi implementado neste projeto (`utilitarios_agrupamentoManual.py`, `graficos_agrupamentoManual.py`, `dbscan_regionaisManual.ipynb`, `diagnostico_parametrosManual.ipynb`), quais decisões técnicas foram tomadas e por quê, e o que o algoritmo produz como resultado.
+Este documento explica o algoritmo DBSCAN, como ele foi implementado neste projeto (`utilitarios_agrupamentoManual.py`, `graficos_agrupamentoManual.py`, `dbscan.ipynb`), quais decisões técnicas foram tomadas e por quê, e o que o algoritmo produz como resultado.
 
 ## 1. O que é o DBSCAN
 
@@ -44,15 +44,15 @@ Cada CSV de taxa vem em formato **largo** (uma coluna `<ano>_<categoria>_TAXA` p
 
 ### Etapa 2 — Janela temporal, descarte de colunas, tratamento de nulos
 
-1. **Janela comum** (`USAR_JANELA_COMUM=True`, `ANO_INICIAL_COMUM=2013`, `ANO_FINAL_COMUM=2023`): restringe o painel a um período em que todos os blocos têm cobertura razoável. Sem isso, praticamente nenhum par Regional-Ano teria as 42 variáveis preenchidas simultaneamente.
+1. **Janela comum** (`USAR_JANELA_COMUM`, `ANO_INICIAL_COMUM=2013`, `ANO_FINAL_COMUM=2023`): quando ligada, restringe o painel a um período em que todos os blocos têm cobertura razoável. No pipeline principal atual, `USAR_JANELA_COMUM=False` — usa-se o período completo de cada bloco, sem restringir ano.
 2. **Descarte de categorias "sem informação" e "total"** (`descartar_colunas_sem_informacao_e_total`): essas colunas não são um perfil epidemiológico, são resíduo de preenchimento incompleto (sem informação) ou redundância (total = soma das demais).
 3. **Descarte de colunas muito esparsas** (`descartar_colunas_com_muitos_nulos`, limiar 70%): remove atributos clinicamente quase inexistentes (ex.: mortalidade por câncer de mama em faixas etárias jovens) que, se mantidos, esvaziariam a base inteira no próximo passo.
-4. **Descarte de linhas com qualquer valor ausente** (`tratar_nulos_sem_imputar`) — **nenhum valor é imputado**. Essa é uma decisão metodológica central do projeto: como o NaN nos CSVs de taxa é ambíguo (pode ser "zero eventos" ou "sem população válida para calcular a taxa"), preencher esse vazio por qualquer método (média, interpolação, zero) inventaria dado. A consequência é um descarte pesado: no pipeline principal, 194 de 308 linhas (63%) são descartadas nessa etapa, sobrando **114 pares Regional-Ano x 32 variáveis**.
+4. **Descarte de linhas com qualquer valor ausente** (`tratar_nulos_sem_imputar`) — **nenhum valor é imputado**. Essa é uma decisão metodológica central do projeto: como o NaN nos CSVs de taxa é ambíguo (pode ser "zero eventos" ou "sem população válida para calcular a taxa"), preencher esse vazio por qualquer método (média, interpolação, zero) inventaria dado. A consequência é um descarte pesado: no pipeline principal (sem janela comum), 945 de 1.316 linhas (71,8%) são descartadas nessa etapa, sobrando **371 pares Regional-Ano x 22 variáveis**.
 
 ### Etapa 3 — Padronização (RobustScaler) e PCA condicional
 
 - **RobustScaler** (mediana e IQR, não média e desvio padrão) é aplicado sempre, antes de qualquer outra coisa — protege contra outliers extremos (ex.: Belo Horizonte, com valores muito maiores que as demais Regionais) sem que eles distorçam a escala das variáveis.
-- **PCA** é condicional (`USAR_PCA`): `None` decide sozinho pela razão nº de atributos / nº de linhas (aplica PCA se ultrapassar `RAZAO_MAXIMA_ATRIBUTOS_POR_LINHA=0.10` — a "maldição da dimensionalidade": muitos atributos para poucas observações torna a distância euclidiana pouco informativa); `True` força PCA; `False` pula PCA inteiramente. No pipeline principal, `USAR_PCA=False` está fixado manualmente (razão real = 0.281, seria PCA se fosse automático) — decisão tomada explicitamente para o notebook de diagnóstico investigar se a alta dimensionalidade é a causa do DBSCAN colapsar em 1 cluster.
+- **PCA** é condicional (`USAR_PCA`): `None` decide sozinho pela razão nº de atributos / nº de linhas (aplica PCA se ultrapassar `RAZAO_MAXIMA_ATRIBUTOS_POR_LINHA=0.10` — a "maldição da dimensionalidade": muitos atributos para poucas observações torna a distância euclidiana pouco informativa); `True` força PCA; `False` pula PCA inteiramente. No pipeline principal, `USAR_PCA=False` está fixado manualmente (razão real = 22/371 = 0,059 — já ficaria abaixo do limiar automático mesmo com `USAR_PCA=None`).
 - Quando aplicado, o número de componentes é escolhido para atingir `VARIANCIA_EXPLICADA_ALVO=0.85` (85% da variância), limitado a `NUMERO_MAXIMO_DE_COMPONENTES=10`.
 
 ## 4. Estimativa de `eps` (Monko & Kimura, 2023)
@@ -70,17 +70,18 @@ Se o `kneed` não encontrar joelho, há um **fallback**: usa o ponto de maior cu
 
 ## 5. Estimativa de `MinPts` (grid search)
 
-Com `eps` já fixo, `buscar_min_samples` varre `MinPts` de `MIN_SAMPLES_MINIMO=3` até um teto derivado de `MULTIPLICADOR_MIN_SAMPLES_MAXIMO=4` × número de atributos (regra de bolso de Sander et al., 1998: MinPts ≈ 2× a dimensionalidade; aqui usa-se 4× para dar folga à busca), rodando o DBSCAN completo em cada candidato e escolhendo o `MinPts` de **maior silhueta sem ruído** (empate → menor `MinPts`). `MinPts` nunca fica abaixo de 3.
+Com `eps` já fixo, `buscar_min_samples` varre `MinPts` de `MIN_SAMPLES_MINIMO=3` até um teto derivado de `MULTIPLICADOR_MIN_SAMPLES_MAXIMO=4` × número de atributos (regra de bolso de Sander et al., 1998: MinPts ≈ 2× a dimensionalidade; aqui usa-se 4× para dar folga à busca — substitui o teto fixo "3 a 100" sugerido no Algoritmo 2 de Monko & Kimura, 2023, por um teto proporcional à dimensionalidade real dos dados do projeto), rodando o DBSCAN completo em cada candidato e escolhendo o `MinPts` de **maior silhueta sem ruído** (empate → menor `MinPts`). `MinPts` nunca fica abaixo de 3.
+
+**Nota sobre fidelidade ao método citado**: o Algoritmo 2 de Monko & Kimura (2023) calcula a silhueta com `silhouette_score(features, labels)` sobre todos os pontos, ruído incluído. Este projeto adapta esse critério para excluir o ruído do cálculo da silhueta antes de escolher o `MinPts` (ver `resumir_agrupamento`) — o rótulo `-1` não representa um agrupamento de fato, e incluí-lo distorce a métrica (`silhouette_score` assume que todo rótulo é um cluster válido). É uma adaptação deliberada e documentada, não uma reprodução literal do Algoritmo 2 do artigo.
 
 ## 6. Execução do DBSCAN
 
-`executar_dbscan` chama `sklearn.cluster.DBSCAN(eps, min_samples, metric="euclidean", algorithm=..., n_jobs=-1)`. O algoritmo de indexação espacial (`kd_tree` ou `ball_tree`, nunca `brute`) é escolhido automaticamente pela métrica (`_algoritmo_por_metrica`) para preservar complexidade média O(n log n) — evita a varredura par a par O(n²).
+`executar_dbscan` chama `sklearn.cluster.DBSCAN(eps, min_samples, metric="euclidean", algorithm="auto", n_jobs=-1)`. Com `algorithm="auto"`, o próprio scikit-learn escolhe a estrutura de busca de vizinhança (`kd_tree`, `ball_tree` ou `brute`) com base na métrica **e** na dimensionalidade dos dados — acima de ~15 atributos a biblioteca já prefere `brute`, porque árvores espaciais deixam de compensar em alta dimensão (curse of dimensionality). Uma escolha fixa feita à mão (sempre `kd_tree`, nunca `brute`) ignoraria esse critério.
 
 ## 7. Métricas e medidas estatísticas usadas
 
 - **Distância euclidiana** (`METRICA_DISTANCIA="euclidean"`) — configurável para outras métricas do scikit-learn.
 - **Silhueta** (`sklearn.metrics.silhouette_score`), em **duas versões**: sem ruído (pontos rotulados `-1` excluídos — é o critério real usado para escolher `MinPts`) e com ruído (ruído tratado como um cluster próprio — só reportada para comparação, nunca usada como critério, porque distorce a métrica: silhueta assume que todo rótulo é um agrupamento válido, e ruído representa ausência de agrupamento).
-- **Estatísticas descritivas da curva de k-distâncias** (`estatisticas_da_curva`, usada só no notebook de diagnóstico): amplitude, salto máximo entre pontos consecutivos e sua posição relativa na curva — caracteriza a forma da curva sem depender só da leitura visual.
 - **Variância explicada acumulada** do PCA, quando aplicado.
 - **Pesos ("loadings") dos atributos no primeiro componente principal** (`pesos_das_variaveis_no_componente`) — interpreta o que o eixo PC1 representa (porte/volume da Regional vs. perfil epidemiológico distinto).
 
@@ -100,12 +101,12 @@ Nenhum desses valores é lido de fora do código (não há arquivo de configura�
 
 ## 9. Bibliotecas usadas
 
-`numpy`, `pandas` (manipulação de dados), `scikit-learn` (`DBSCAN`, `PCA`, `RobustScaler`, `NearestNeighbors`, `BallTree`/`KDTree`, `silhouette_score`), `kneed` (localização do joelho), `plotly` (visualizações, em `graficos_agrupamentoManual.py`).
+`numpy`, `pandas` (manipulação de dados), `scikit-learn` (`DBSCAN`, `PCA`, `RobustScaler`, `NearestNeighbors`, `silhouette_score`), `kneed` (localização do joelho), `plotly` (visualizações, em `graficos_agrupamentoManual.py`).
 
 ## 10. O que o pipeline produz
 
 - **`resumo_parametros`**: uma linha com todos os parâmetros e métricas usados na execução (eps, MinPts, nº de clusters, nº de ruído, silhueta) — rastreabilidade da configuração.
-- **`atributos_usados`**: lista das 32 variáveis que efetivamente entraram no DBSCAN.
+- **`atributos_usados`**: lista das variáveis que efetivamente entraram no DBSCAN (22 no pipeline principal atual, sem janela comum).
 - **`resultado`** (`montar_tabela_pertencimento`): uma linha por par Regional-Ano com o `CLUSTER` atribuído.
 - **`visao_agregada_regional_ano`**: pivot Regional × Ano → cluster, mostra em quais agrupamentos cada Regional caiu, ano a ano.
 - **`resumo_por_cluster`**: uma linha por cluster (ruído incluído), com quantidade de pares, quantas Regionais distintas e a lista de membros.
@@ -113,6 +114,6 @@ Nenhum desses valores é lido de fora do código (não há arquivo de configura�
 
 ## 11. Resultado obtido e limitação observada
 
-Com a configuração atual do pipeline principal (janela 2013-2023, sem PCA), o DBSCAN converge para **apenas 1 cluster + ruído** (26 de 114 pares classificados como ruído, 22,8%) — a silhueta sem ruído fica indefinida (`NaN`), porque o cálculo exige pelo menos 2 clusters. Ou seja, na configuração padrão, o algoritmo não separa múltiplos perfis epidemiológicos distintos entre as Regionais: ele só distingue "comportamento típico" de "atípico" (ruído).
+Com a configuração atual do pipeline principal (sem janela comum, sem PCA — `USAR_JANELA_COMUM=False`, `USAR_PCA=False`), o DBSCAN estima `eps=2,9709` (k=5, p=10, m=5, grau 3) e `MinPts=3`, e converge para **2 clusters** sobre 371 pares Regional-Ano x 22 atributos: 70 pares classificados como ruído (18,9%), silhueta sem ruído = 0,3727 (silhueta com ruído incluído = 0,2614, só reportada para comparação). Ou seja, nessa configuração o algoritmo separa dois perfis epidemiológicos distintos entre as Regionais, com separação razoável entre eles.
 
-O notebook `diagnostico_parametrosManual.ipynb` investiga isso variando `NUMERO_MAXIMO_DE_COMPONENTES` (10, 6, 4) e `K_VIZINHOS_EPS` (3, 5, 8) sobre a matriz **sem** a janela comum (371 linhas, período completo por bloco) — nesse regime alternativo, a maioria dos cenários encontra 2 clusters, com silhuetas entre 0,15 e 0,37. Isso indica que o resultado de "1 cluster" no pipeline principal é sensível à combinação específica de janela temporal + ausência de PCA, e não uma propriedade universal dos dados — um ponto que vale registrar explicitamente na monografia como limitação/achado do método, não escondê-lo.
+A configuração com `USAR_JANELA_COMUM=True` (janela 2013-2023, 114 pares x 32 atributos) é um regime bem mais restrito, com bem menos linhas — vale testá-la e registrar como comparação na monografia, já que o comportamento do DBSCAN (nº de clusters, ruído, silhueta) é sensível à combinação específica de janela temporal + dimensionalidade, não uma propriedade fixa dos dados.

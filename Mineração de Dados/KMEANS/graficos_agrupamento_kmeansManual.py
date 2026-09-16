@@ -143,34 +143,6 @@ def grafico_dispersao_pc1_pc2_kmeans(matriz_2d, rotulos, indice, variancia_expli
     return figura
 
 
-def grafico_dispersao_regionais_kmeans(matriz_2d, rotulos, indice_regional, variancia_explicada, k):
-    """Dispersão PC1 x PC2 quando cada ponto é uma Regional inteira
-    (trajetória) -- rótulo do ponto é só o nome da Regional, sem ano."""
-    rotulos_presentes = sorted(set(rotulos))
-    paleta = cores_dos_clusters(rotulos_presentes)
-
-    figura = go.Figure()
-    for rotulo in rotulos_presentes:
-        selecao = rotulos == rotulo
-        figura.add_trace(go.Scatter(
-            x=matriz_2d[selecao, 0], y=matriz_2d[selecao, 1], mode="markers+text",
-            name=rotulo_do_cluster(rotulo),
-            marker=dict(color=paleta[rotulo], size=11, line=dict(width=1, color="white")),
-            text=list(np.array(indice_regional)[selecao]),
-            textposition="top center", textfont=dict(size=9),
-            hovertemplate="<b>%{text}</b><br>PC1: %{x:.2f}<br>PC2: %{y:.2f}<extra></extra>",
-        ))
-    figura.update_layout(
-        title=f"Agrupamento das Regionais — KMeans trajetória (k={k})",
-        template="plotly_white", width=1050, height=720,
-        xaxis=dict(title=f"PC1 ({variancia_explicada[0]:.1%} da variância)"),
-        yaxis=dict(title=f"PC2 ({variancia_explicada[1]:.1%} da variância)"),
-        legend=dict(orientation="h", yanchor="top", y=-0.12, xanchor="center", x=0.5),
-        margin=dict(t=80),
-    )
-    return figura
-
-
 def grafico_dispersao_pc1_pc2_por_ano(matriz_2d, rotulos, indice, variancia_explicada, colunas_por_linha=4):
 
     anos = indice.get_level_values(COLUNA_ANO)
@@ -226,39 +198,6 @@ def grafico_dispersao_pc1_pc2_por_ano(matriz_2d, rotulos, indice, variancia_expl
         font=dict(size=11),
         legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5),
         margin=dict(t=120),
-    )
-    return figura
-
-
-def grafico_perfil_dos_clusters(matriz_padronizada, colunas, indice, rotulos, top_n=12):
-    """
-    Perfil médio (em desvios-padrão robustos, já que a matriz veio do
-    RobustScaler) de cada cluster nos `top_n` atributos de maior variância
-    entre clusters -- mostra o que diferencia cada agrupamento, em vez de
-    só onde cada ponto caiu no espaço 2D.
-    """
-    tabela = pd.DataFrame(matriz_padronizada, columns=colunas, index=indice)
-    tabela["CLUSTER"] = rotulos
-    perfil = tabela.groupby("CLUSTER").mean()
-
-    atributos_mais_distintivos = perfil.var(axis=0).sort_values(ascending=False).head(top_n).index
-    perfil = perfil[atributos_mais_distintivos]
-
-    rotulos_presentes = sorted(perfil.index)
-    paleta = cores_dos_clusters(rotulos_presentes)
-
-    figura = go.Figure()
-    for rotulo in rotulos_presentes:
-        figura.add_trace(go.Scatterpolar(
-            r=perfil.loc[rotulo].to_numpy(), theta=list(atributos_mais_distintivos),
-            fill="toself", name=rotulo_do_cluster(rotulo),
-            line=dict(color=paleta[rotulo]),
-        ))
-    figura.update_layout(
-        title=f"Perfil médio dos clusters — {top_n} atributos mais distintivos (padronizados)",
-        template="plotly_white", width=900, height=700,
-        legend=dict(orientation="h", yanchor="bottom", y=-0.15, xanchor="center", x=0.5),
-        margin=dict(t=80),
     )
     return figura
 

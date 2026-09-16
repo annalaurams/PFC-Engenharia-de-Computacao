@@ -8,16 +8,19 @@ from kneed import KneeLocator
 from sklearn.cluster import DBSCAN
 from sklearn.decomposition import PCA
 from sklearn.metrics import silhouette_score
-from sklearn.neighbors import BallTree, KDTree, NearestNeighbors
+from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import RobustScaler
 
 
-# Localização dos utilitários comuns do projeto
+# Localização dos utilitários comuns do projeto -- relativa à posição
+# deste arquivo (não ao diretório de trabalho do kernel Jupyter), para
+# funcionar em qualquer máquina/clone independente de onde o notebook
+# for aberto.
 def _preparar_sys_path():
+    raiz_do_projeto = Path(__file__).resolve().parent.parent.parent
     candidatos = [
-        Path.cwd().parent.parent / "Seleção e Transformação" / "População",
+        raiz_do_projeto / "Seleção e Transformação" / "População",
         Path.home() / "tcc" / "Seleção e Transformação" / "População",
-        Path.cwd() / "Seleção e Transformação" / "População",
     ]
     pasta = next((p for p in candidatos if (p / "utilitarios_comuns.py").exists()), None)
     if pasta is None:
@@ -75,7 +78,7 @@ BLOCOS_DE_TAXA = [
 SLUGS_DE_CATEGORIA_DESCARTADOS = ("sem-informacao", "total")
 
 
-USAR_JANELA_COMUM = True
+USAR_JANELA_COMUM = False
 ANO_INICIAL_COMUM = 2013
 ANO_FINAL_COMUM = 2023
 
@@ -91,14 +94,14 @@ ANO_FINAL_COMUM = 2023
 LIMIAR_MAXIMO_DE_NULOS_POR_COLUNA = 0.70
 
 # --- Estimativa de eps (Monko & Kimura, 2023) ---
-K_VIZINHOS_EPS = 5           # k: nº de vizinhos mais próximos por ponto
+K_VIZINHOS_EPS = 10          # k: nº de vizinhos mais próximos por ponto
 QUANTIDADE_DE_ESTRATOS = 10  # p: nº de estratos de mesma amplitude
 AMOSTRAS_POR_ESTRATO = 5     # m: nº de pontos amostrados por estrato
 GRAU_POLINOMIO_EPS = 3
 SENSIBILIDADE_JOELHO = 1.0
 
 # --- Estimativa de MinPts (grid search, eps fixo) ---
-MIN_SAMPLES_MINIMO = 3
+MIN_SAMPLES_MINIMO = 5
 # Teto do grid search: NÃO é mais um valor fixo (era MIN_SAMPLES_MAXIMO=100,
 # força bruta desnecessária para o tamanho deste painel -- 28 regionais).
 # Regra de bolso de Sander et al. (1998, "Density-Based Clustering in
@@ -120,7 +123,7 @@ MIN_SAMPLES_PASSO = 1
 # PCA mesmo com poucos atributos; USAR_PCA=False pula o PCA inteiramente,
 # mesmo com muitos -- útil para diagnosticar se a alta dimensionalidade é
 # de fato a causa de algum comportamento do DBSCAN (ex.: eps grande demais).
-USAR_PCA = False
+USAR_PCA = True
 RAZAO_MAXIMA_ATRIBUTOS_POR_LINHA = 0.10
 VARIANCIA_EXPLICADA_ALVO = 0.85
 NUMERO_MAXIMO_DE_COMPONENTES = 10
@@ -380,6 +383,11 @@ def pesos_das_variaveis_no_componente(pca, colunas, componente=1):
 def distancia_media_aos_k_vizinhos(matriz, k, metric=METRICA_DISTANCIA):
     """Para cada ponto, a média das distâncias euclidianas aos k vizinhos
     mais próximos (exclui o próprio ponto)."""
+    if len(matriz) <= k:
+        raise ValueError(
+            f"Não é possível calcular a distância média aos {k} vizinhos mais próximos: "
+            f"a matriz tem apenas {len(matriz)} linha(s). Reduza K_VIZINHOS_EPS ou aumente a amostra."
+        )
     vizinhanca = NearestNeighbors(n_neighbors=k + 1, metric=metric).fit(matriz)
     distancias, _ = vizinhanca.kneighbors(matriz)
     return distancias[:, 1:].mean(axis=1)
@@ -454,37 +462,21 @@ def estimar_eps_monko_kimura(matriz, k=K_VIZINHOS_EPS, p=QUANTIDADE_DE_ESTRATOS,
     }
 
 
-# Etapa 5: DBSCAN -- escolha de algoritmo de indexação e estimativa de MinPts
-def _algoritmo_por_metrica(metric):
-    """
-    Escolhe a estrutura de indexação espacial do DBSCAN para a busca de
-    vizinhança -- nunca algorithm='brute' (varredura par a par, O(n^2)).
-    kd_tree quando a métrica é compatível; ball_tree como alternativa para
-    métricas que o kd_tree não suporta mas o ball_tree sim (ex.: métricas
-    que não obedecem à decomposição por eixos do kd_tree). Se nenhuma das
-    duas suportar a métrica (ex.: 'cosine', que exige 'brute'), levanta
-    erro em vez de cair silenciosamente em 'brute'.
-
-    Preserva a complexidade média de busca O(n log n) da indexação
-    espacial, análoga em espírito à árvore R* usada por Ester et al.
-    (1996, "A Density-Based Algorithm for Discovering Clusters in Large
-    Spatial Databases with Noise", KDD-96) -- e não a varredura par a par
-    de 'brute'.
-    """
-    if metric in KDTree.valid_metrics:
-        return "kd_tree"
-    if metric in BallTree.valid_metrics:
-        return "ball_tree"
-    raise ValueError(
-        f"Métrica '{metric}' não é suportada por kd_tree nem por ball_tree -- só seria "
-        "possível com algorithm='brute' (varredura par a par), que este projeto não usa "
-        "(ver _algoritmo_por_metrica). Escolha outra métrica ou trate este caso explicitamente."
-    )
-
-
+# Etapa 5: DBSCAN
 def executar_dbscan(matriz, eps, min_samples, metric=METRICA_DISTANCIA):
-    algoritmo = _algoritmo_por_metrica(metric)
-    return DBSCAN(eps=eps, min_samples=min_samples, metric=metric, algorithm=algoritmo, n_jobs=-1).fit(matriz)
+    """
+    algorithm='auto' (padrão do scikit-learn): deixa a própria biblioteca
+    escolher a estrutura de busca de vizinhança (kd_tree, ball_tree ou
+    brute) com base na métrica E na dimensionalidade dos dados --
+    kd_tree/ball_tree só compensam em baixa/média dimensão (curse of
+    dimensionality); acima de ~15 atributos o próprio scikit-learn já
+    prefere 'brute' (ver sklearn.neighbors._base.NeighborsBase._fit).
+    Uma seleção fixa feita à mão (sempre kd_tree/ball_tree, nunca brute)
+    ignoraria esse critério e poderia escolher pior que o padrão da
+    biblioteca conforme o número de atributos da matriz mudar (com ou
+    sem PCA, por exemplo).
+    """
+    return DBSCAN(eps=eps, min_samples=min_samples, metric=metric, algorithm="auto", n_jobs=-1).fit(matriz)
 
 
 def buscar_min_samples(matriz, eps, minimo=MIN_SAMPLES_MINIMO, maximo=None,
@@ -504,6 +496,12 @@ def buscar_min_samples(matriz, eps, minimo=MIN_SAMPLES_MINIMO, maximo=None,
     if maximo is None:
         maximo = max(minimo, MULTIPLICADOR_MIN_SAMPLES_MAXIMO * matriz.shape[1])
     limite_superior = min(maximo, len(matriz) - 1)
+    if minimo > limite_superior:
+        raise ValueError(
+            f"Nenhum MinPts testável: minimo={minimo} > limite superior={limite_superior} "
+            f"(len(matriz)-1={len(matriz) - 1}). A amostra tem poucas linhas demais para a "
+            "grade configurada -- reduza MIN_SAMPLES_MINIMO ou aumente a amostra."
+        )
     candidatos = list(range(minimo, limite_superior + 1, passo))
 
     linhas = []
@@ -622,46 +620,3 @@ def montar_resumo_por_cluster(tabela_pertencimento):
         include_groups=False,
     ).reset_index().sort_values("CLUSTER").reset_index(drop=True)
     return resumo
-
-
-# =======================================================================
-# Diagnóstico de parâmetros (usado por diagnostico_parametrosManual.ipynb)
-# =======================================================================
-def estatisticas_da_curva(curva):
-    """
-    Estatísticas descritivas da curva de k-distâncias -- caracteriza a
-    forma da curva (amplitude, salto máximo entre pontos consecutivos e
-    sua posição relativa) sem depender só da leitura visual do gráfico.
-    """
-    saltos = np.diff(curva)
-    amplitude = curva.max() - curva.min()
-    return {
-        "amplitude_curva": amplitude,
-        "salto_maximo": saltos.max(),
-        "razao_salto_amplitude": saltos.max() / amplitude,
-        "indice_maior_salto_pct": np.argmax(saltos) / len(curva),
-    }
-
-
-def rodar_cenario_diagnostico(nome, matriz_dbscan, k_eps=K_VIZINHOS_EPS):
-    """
-    Roda o pipeline eps -> MinPts -> DBSCAN num cenário de diagnóstico
-    (mesmas funções do pipeline principal, só variando parâmetros de
-    entrada -- nenhuma lógica nova) e resume o resultado num dicionário
-    para comparação em tabela.
-    """
-    resultado_eps_cenario = estimar_eps_monko_kimura(matriz_dbscan, k=k_eps)
-    eps_cenario = resultado_eps_cenario["eps"]
-    min_samples_cenario, _ = buscar_min_samples(matriz_dbscan, eps_cenario)
-    modelo_cenario = executar_dbscan(matriz_dbscan, eps_cenario, min_samples_cenario)
-    n_clusters_cenario, n_ruido_cenario, silhueta_sem_ruido_cenario, silhueta_com_ruido_cenario = (
-        resumir_agrupamento(matriz_dbscan, modelo_cenario.labels_)
-    )
-    return {
-        "CENARIO": nome, "N_DIMENSOES": matriz_dbscan.shape[1], "K_VIZINHOS_EPS": k_eps,
-        "EPS": eps_cenario, "MIN_SAMPLES": min_samples_cenario,
-        "N_CLUSTERS": n_clusters_cenario, "N_RUIDO": n_ruido_cenario,
-        "SILHUETA_SEM_RUIDO": silhueta_sem_ruido_cenario,
-        "SILHUETA_COM_RUIDO": silhueta_com_ruido_cenario,
-        **estatisticas_da_curva(resultado_eps_cenario["curva"]),
-    }
