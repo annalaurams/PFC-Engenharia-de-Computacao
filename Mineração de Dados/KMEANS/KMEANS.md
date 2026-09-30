@@ -1,69 +1,62 @@
 # KMeans — como funciona e como foi implementado
 
-Este documento explica o algoritmo KMeans, como ele foi implementado neste projeto (`utilitarios_agrupamento_kmeansManual.py`, `graficos_agrupamento_kmeansManual.py`, `kmeans.ipynb`) e as decisões técnicas tomadas. O módulo é **autocontido**: não importa nada da pasta `DBSCAN/` — replica de propósito as mesmas regras de pré-processamento (montagem do painel, janela comum, tratamento de nulos sem imputar, RobustScaler + PCA condicional), para que os dois algoritmos possam ser configurados/editados de forma independente.
+Este documento descreve o algoritmo KMeans e a implementação usada no projeto: [utilitarios_agrupamento_kmeans.py](utilitarios_agrupamento_kmeans.py) (painel, pré-processamento, escolha de `k`, caracterização), [graficos_agrupamento_kmeans.py](graficos_agrupamento_kmeans.py) (gráficos) e [kmeans.ipynb](kmeans.ipynb) (execução e resultados).
 
 ## 1. O que é o KMeans
 
-KMeans é um algoritmo de agrupamento **particional baseado em centróides**. Dado um número `k` de clusters (escolhido antes de rodar o algoritmo), ele:
+Algoritmo de agrupamento particional baseado em centróides. Dado `k`, ele inicializa `k` centróides, atribui cada ponto ao centróide mais próximo, recalcula cada centróide como a média dos seus pontos e repete até convergir. O critério minimizado é a **inércia** (WCSS): a soma dos quadrados das distâncias de cada ponto ao centróide do seu cluster. Todo ponto pertence a algum cluster (não há "ruído") e `k` precisa ser definido antes da execução.
 
-1. Inicializa `k` centróides;
-2. Atribui cada ponto ao centróide mais próximo;
-3. Recalcula cada centróide como a média dos pontos atribuídos a ele;
-4. Repete os passos 2-3 até convergir.
+## 2. Unidade de agrupamento e pré-processamento
 
-O critério que o algoritmo minimiza é a **inércia** (WCSS — *Within-Cluster Sum of Squares*): a soma dos quadrados das distâncias de cada ponto ao centróide do seu cluster. Diferente do DBSCAN, o KMeans **sempre** atribui todo ponto a algum cluster — não existe "ruído"; e o número de clusters `k` **precisa** ser definido a priori (não emerge da densidade dos dados).
+A unidade agrupada é o par **(Regional de Saúde, Ano)**. As etapas, todas em `utilitarios_agrupamento_kmeans.py`:
 
-## 2. Unidade de agrupamento, dados de entrada e pré-processamento
+1. `montar_painel` lê os 5 CSVs de taxa (casos por faixa etária, escolaridade e raça/cor, mortalidade e mamografia) e monta a matriz (Regional, Ano) x variável.
+2. Janela comum 2014–2023 (`USAR_JANELA_COMUM`). O início da mamografia foi ajustado para 2014 (`ano_inicial_override` em `_bloco`), porque em 2013 só 3 das 28 Regionais têm registro.
+3. Descarte das colunas "sem informação" e "total" e das colunas com mais de 5% de nulos (`LIMIAR_MAXIMO_DE_NULOS_POR_COLUNA`).
+4. `tratar_nulos_sem_imputar` descarta as linhas com valor ausente; nenhum valor é imputado.
+5. `padronizar_e_reduzir` aplica o `RobustScaler` (mediana e IQR).
 
-A unidade agrupada é o par **(Regional de Saúde, Ano)** — a mesma unidade usada pelo DBSCAN. Este módulo é **autocontido** (não importa nada de `DBSCAN/`), mas replica de propósito, com o mesmo código, as mesmas regras de entrada e pré-processamento do DBSCAN: leitura dos 5 blocos de taxa (`montar_painel`/`ler_csv_taxa_em_painel`), janela temporal (`USAR_JANELA_COMUM`), descarte de colunas sem-informação/total e com muitos nulos, `dropna` sem imputação, e `RobustScaler` + PCA condicional. Essas etapas estão descritas em detalhe em [`DBSCAN.md`, Seções 2 e 3](../DBSCAN/DBSCAN.md) — não repetidas aqui porque o código e o resultado são idênticos: com `USAR_JANELA_COMUM=False` e `LIMIAR_MAXIMO_DE_NULOS_POR_COLUNA=0.70` nos dois arquivos, a matriz final é **371 pares × 22 atributos** nos dois algoritmos, e `USAR_PCA=False` está fixado nos dois (razão atributos/linhas = 22/371 ≈ 0,059, já abaixo do limiar automático).
+A matriz final tem **256 pares x 29 atributos**.
 
-A partir daqui, a matriz de entrada do KMeans já passou por essas etapas. A única etapa que muda é a escolha do parâmetro central: `k`, no lugar do par `eps`/`MinPts` do DBSCAN (Seção 3, abaixo), seguida por `executar_kmeans` (`sklearn.cluster.KMeans`).
+## 3. Etapas testadas e não usadas no resultado final
 
-## 3. Escolha de `k` (cotovelo da curva de inércia)
+O código das duas abordagens abaixo foi mantido, mas elas estão desligadas:
 
-`k` não é fixado à mão. `calcular_inercia_e_silhueta_por_k` roda o KMeans para cada `k` entre `K_MINIMO` e `K_MAXIMO` (=10), calculando inércia (sempre decrescente com `k`) e silhueta. `escolher_k_pelo_cotovelo` usa a mesma biblioteca `kneed` do DBSCAN (`KneeLocator`, agora `curve="convex"`, `direction="decreasing"` — a curva de inércia decresce, ao contrário da curva de k-distâncias do DBSCAN, que cresce) para localizar o cotovelo — o ponto a partir do qual aumentar `k` deixa de reduzir a inércia de forma significativa (método de Thorndike, 1953). Mesmo fallback do DBSCAN se o `kneed` não encontrar cotovelo (segunda derivada discreta).
+- **PCA** (`USAR_PCA = False`): `padronizar_e_reduzir`, `preparar_projecao_2d`, `pesos_das_variaveis_no_componente` e os gráficos `grafico_variancia_explicada`, `grafico_pesos_da_componente` e de dispersão PC1 x PC2.
+- **Silhueta** (`CALCULAR_SILHUETA = False`): o cálculo em `calcular_inercia_e_silhueta_por_k`, `busca_em_grade_k` e `resumir_agrupamento_kmeans`, além de `grafico_silhueta_por_k`. As colunas de silhueta ficam `NaN`.
 
-`busca_em_grade_k` roda a mesma varredura com `ParameterGrid` como validação complementar, testando múltiplas sementes (`SEMENTES_DA_BUSCA = [42, 7, 123, 2024, 99]` por padrão) para checar a sensibilidade do resultado à inicialização dos centróides.
+## 4. Escolha de `k` (cotovelo da curva de inércia)
 
-## 4. Execução do KMeans
+`calcular_inercia_e_silhueta_por_k` roda o KMeans para cada `k` de `K_MINIMO` (2) a `K_MAXIMO` (12). `escolher_k_pelo_cotovelo` usa o `KneeLocator` da biblioteca `kneed` (`curve="convex"`, `direction="decreasing"`); se não houver cotovelo, usa a maior curvatura discreta (segunda derivada).
 
-`executar_kmeans` chama `sklearn.cluster.KMeans(n_clusters=k, random_state=SEMENTE_ALEATORIA, n_init=NUMERO_DE_INICIALIZACOES)`. `n_init=10`: o KMeans roda 10 vezes com inicializações de centróide diferentes e mantém o melhor resultado (menor inércia) — mitiga o problema de o algoritmo convergir para um mínimo local ruim dependendo da inicialização.
+`busca_em_grade_k` repete a varredura para cada combinação de `k` e semente (`SEMENTES_DA_BUSCA = [0, 10, 30, 42, 66]`), para verificar a sensibilidade à inicialização.
 
-## 5. Métricas e medidas estatísticas usadas
+## 5. Execução e caracterização
 
-- **Inércia (WCSS)** — critério principal de ajuste do próprio KMeans e base do método do cotovelo.
-- **Silhueta** (`sklearn.metrics.silhouette_score`) — aqui em **uma única versão** (diferente do DBSCAN), já que não existe ruído a separar; usada como validação complementar ao cotovelo, nunca como critério isolado (o comentário no código é explícito: a inércia decrescente monotonicamente com `k` tornaria "maior silhueta" um critério enviesado para `k` pequeno).
-- **Distância euclidiana** sobre a matriz padronizada (RobustScaler) — mesma métrica do DBSCAN.
-- **Variância explicada acumulada** do PCA, quando aplicado.
-- **Pesos ("loadings") do PC1** (`pesos_das_variaveis_no_componente`), mesma função reaproveitada em espírito do DBSCAN (implementação própria, mas idêntica).
-- **Diagnóstico de tamanho de cluster** (`diagnostico_tamanho_dos_clusters`): identifica clusters com menos de `MINIMO_DE_ELEMENTOS_POR_CLUSTER=4` elementos — um aviso pós-hoc, sem efeito sobre o resultado, sinalizando que um cluster muito pequeno tende a ser um outlier isolado, não um perfil compartilhado.
+- `executar_kmeans` roda `sklearn.cluster.KMeans(n_clusters=k, random_state=42, n_init=10)`; os clusters são numerados a partir de 1.
+- `diagnostico_tamanho_dos_clusters` avisa sobre clusters com menos de 4 elementos.
+- `calcular_caracterizacao_por_cluster` compara a média de cada variável no cluster com a média geral, em unidades de IQR geral, sem teste de significância (seria circular, pois o KMeans já maximiza essa diferença).
+- `calcular_parcelas_distancia_ao_centroide` decompõe a distância² de cada par ao centróide em uma parcela por variável; a soma de todas as parcelas é a inércia final.
 
-## 6. O que é configurável (e o que cada coisa afeta)
+## 6. Constantes configuráveis
 
 | Constante | Efeito |
 |---|---|
 | `USAR_JANELA_COMUM`, `ANO_INICIAL_COMUM`, `ANO_FINAL_COMUM` | período do painel |
-| `LIMIAR_MAXIMO_DE_NULOS_POR_COLUNA` | esparsidade máxima de coluna aceita |
-| `USAR_PCA`, `RAZAO_MAXIMA_ATRIBUTOS_POR_LINHA`, `VARIANCIA_EXPLICADA_ALVO`, `NUMERO_MAXIMO_DE_COMPONENTES` | se e quanto reduzir dimensionalidade |
-| `K_MINIMO`, `K_MAXIMO` | faixa de busca de `k` |
-| `SENSIBILIDADE_COTOVELO` | sensibilidade do `KneeLocator` |
-| `SEMENTES_DA_BUSCA`, `NUMERO_DE_INICIALIZACOES` | reprodutibilidade/estabilidade da inicialização do KMeans |
-| `MINIMO_DE_ELEMENTOS_POR_CLUSTER` | só afeta o aviso de diagnóstico, não o resultado |
+| `LIMIAR_MAXIMO_DE_NULOS_POR_COLUNA` | proporção máxima de nulos por coluna |
+| `USAR_PCA`, `RAZAO_MAXIMA_ATRIBUTOS_POR_LINHA`, `VARIANCIA_EXPLICADA_ALVO`, `NUMERO_MAXIMO_DE_COMPONENTES` | PCA (desligado) |
+| `CALCULAR_SILHUETA` | silhueta (desligada) |
+| `K_MINIMO`, `K_MAXIMO`, `SENSIBILIDADE_COTOVELO` | busca de `k` |
+| `SEMENTE_ALEATORIA`, `SEMENTES_DA_BUSCA`, `NUMERO_DE_INICIALIZACOES` | inicialização do KMeans |
+| `MINIMO_DE_ELEMENTOS_POR_CLUSTER` | só o aviso de diagnóstico |
+| `NUMERO_DE_VARIAVEIS_DISCRIMINANTES` | variáveis exibidas por cluster |
 
-Assim como no DBSCAN, tudo são constantes no topo do arquivo `.py`, sem configuração externa.
+Todas ficam no topo do arquivo `.py`.
 
-## 7. Bibliotecas usadas
+## 7. Bibliotecas
 
-`numpy`, `pandas`, `scikit-learn` (`KMeans`, `PCA`, `RobustScaler`, `silhouette_score`, `ParameterGrid`), `kneed`, `plotly`.
+`numpy`, `pandas`, `scikit-learn`, `kneed`, `plotly`.
 
-## 8. O que o pipeline produz
+## 8. Resultado obtido
 
-`resumo_parametros` (k, inércia, silhueta, PCA, dimensões), `atributos_usados`, tabela de pertencimento por cluster, `visao_agregada_regional_ano` (pivot Regional×Ano→cluster) e heatmap correspondente, gráfico de cotovelo com `k` marcado, gráfico de silhueta por `k`, dispersão PC1×PC2 (geral e por ano), distribuição por Regional/Ano, gráfico de variância explicada e pesos (quando há PCA) — mesmo formato do DBSCAN, para comparação direta entre os dois algoritmos sobre a mesma matriz.
-
-Nenhum resultado é gravado em disco — tudo fica só como saída de célula (mesma decisão do DBSCAN).
-
-## 9. Resultado obtido
-
-Com a configuração atual (sem janela comum, sem PCA — 371 pares × 22 atributos), o cotovelo escolhe `k=4`, inércia 3.864,83, silhueta 0,148 (baixa). Composição dos 4 clusters: cluster 0 com 69 pares (18 Regionais distintas), cluster 1 com 119 pares (27 Regionais), cluster 2 com 180 pares (23 Regionais) — mas **cluster 3 tem só 3 pares (2 Regionais)**, abaixo de `MINIMO_DE_ELEMENTOS_POR_CLUSTER=4`, sinalizado pelo próprio `diagnostico_tamanho_dos_clusters` como possível outlier isolado em vez de perfil compartilhado.
-
-Uma silhueta de 0,148 indica clusters com sobreposição considerável — não uma separação nítida entre grupos. Isso é consistente com o que o DBSCAN também mostra nesta mesma matriz (ver `DBSCAN.md`, Seção 11) e vale ser reportado como achado metodológico na monografia, não apenas como número de tabela.
+O cotovelo escolhe `k = 5` (inércia 3.736,87). Os clusters têm 41, 60, 59, 92 e 4 pares (10, 12, 17, 20 e 1 Regionais distintas). O cluster de 4 pares, de uma única Regional, está no limite do aviso de tamanho mínimo e deve ser lido como candidato a caso atípico. O notebook não grava resultados em disco; tudo fica como saída de célula. A metodologia completa está em [RELATORIO_METODOLOGIA_KMEANS.md](RELATORIO_METODOLOGIA_KMEANS.md).

@@ -11,26 +11,22 @@ from sklearn.metrics import silhouette_score
 from sklearn.model_selection import ParameterGrid
 from sklearn.preprocessing import RobustScaler
 
-
-# Módulo AUTOCONTIDO do KMeans: não importa nada de 'DBSCAN/'. Mesmas
-# regras de decisão do DBSCAN (montagem de painel a partir dos CSVs de
-# taxa, janela comum, tratamento de nulos sem imputar, RobustScaler + PCA
-# condicional) são replicadas aqui -- de propósito, para que os dois
-# algoritmos possam ser configurados/editados de forma independente, sem
-# um afetar o outro. Só o utilitário de baixíssimo nível do projeto
-# ('Seleção e Transformação/População/utilitarios_comuns.py', a base
-# comum sob DBSCAN e KMeans) é reaproveitado.
 def _preparar_sys_path():
+    """Adiciona ao sys.path a pasta de População, onde está utilitarios_comuns.py."""
     raiz_do_projeto = Path(__file__).resolve().parent.parent.parent
     candidatos = [
         raiz_do_projeto / "Seleção e Transformação" / "População",
         Path.home() / "tcc" / "Seleção e Transformação" / "População",
     ]
-    pasta = next((p for p in candidatos if (p / "utilitarios_comuns.py").exists()), None)
+    pasta = None
+    for candidato in candidatos:
+        if (candidato / "utilitarios_comuns.py").exists():
+            pasta = candidato
+            break
     if pasta is None:
         raise ModuleNotFoundError(
             "Não encontrei 'utilitarios_comuns.py' em nenhum destes caminhos:\n"
-            + "\n".join(f"  - {p}" for p in candidatos)
+            + "\n".join(f"  - {candidato}" for candidato in candidatos)
             + f"\n\nDiagnóstico do kernel atual:\n  Python: {sys.executable}\n  CWD: {Path.cwd()}"
         )
     sys.path.append(str(pasta))
@@ -51,17 +47,22 @@ from utilitarios_comuns import (  # noqa: E402
 
 PASTA_TAXA = PASTA_POPULACAO / "Taxa"
 
-
-# CONSTANTES DE CONFIGURAÇÃO
+# Constantes de configuração
 
 SEMENTE_ALEATORIA = 42
 
 
-def _bloco(nome, prefixo, especificacao):
+def _bloco(nome, prefixo, especificacao, ano_inicial_override=None):
+    """Monta a configuração de um bloco de taxa; `ano_inicial_override` sobrepõe o ANO_INICIAL declarado."""
+    ano_inicial = especificacao["ANO_INICIAL"]
+    if ano_inicial_override is not None:
+        ano_inicial = ano_inicial_override
+
     return {
-        "NOME": nome, "PREFIXO": prefixo,
+        "NOME": nome,
+        "PREFIXO": prefixo,
         "ARQUIVO": especificacao["NOME_ARQUIVO_SAIDA_TAXA"],
-        "ANO_INICIAL": especificacao["ANO_INICIAL"],
+        "ANO_INICIAL": ano_inicial,
         "ANO_FINAL": especificacao["ANO_FINAL"],
     }
 
@@ -71,64 +72,55 @@ BLOCOS_DE_TAXA = [
     _bloco("Casos por Escolaridade", "casos-escolaridade", ESPECIFICACOES_VARIAVEIS_CATEGORICAS["Casos por Escolaridade"]),
     _bloco("Casos por Raça e Cor", "casos-raca-cor", ESPECIFICACOES_VARIAVEIS_CATEGORICAS["Casos por Raça e Cor"]),
     _bloco("Mortalidade", "mortalidade", ESPECIFICACOES_VARIAVEIS["Mortalidade"]),
-    _bloco("Mamografia", "mamografia", ESPECIFICACOES_VARIAVEIS["Mamografia"]),
+    _bloco("Mamografia", "mamografia", ESPECIFICACOES_VARIAVEIS["Mamografia"], ano_inicial_override=2014),
 ]
 
 SLUGS_DE_CATEGORIA_DESCARTADOS = ("sem-informacao", "total")
 
-USAR_JANELA_COMUM = False
-ANO_INICIAL_COMUM = 2013
+USAR_JANELA_COMUM = True
+ANO_INICIAL_COMUM = 2014
 ANO_FINAL_COMUM = 2023
 
-# Nos CSVs de taxa, uma célula fica em branco (NaN) quando a soma bruta da
-# categoria-ano-regional é NaN em TODOS os municípios da regional --
-# ambiguidade proposital (não dá para distinguir "zero eventos" de "sem
-# população válida para calcular"). Por isso NaN nunca vira 0 aqui.
-LIMIAR_MAXIMO_DE_NULOS_POR_COLUNA = 0.70
+# Proporção máxima de nulos para manter uma coluna
+LIMIAR_MAXIMO_DE_NULOS_POR_COLUNA = 0.05
 
-# --- Padronização / redução de dimensionalidade ---
-# USAR_PCA=None (padrão): decide sozinho pela razão nº de atributos / nº de
-# linhas. USAR_PCA=True força PCA; USAR_PCA=False pula o PCA inteiramente
-# -- em ambos os casos o critério automático é ignorado.
-USAR_PCA = True
+# PCA: None decide pela razão atributos/linhas; True força; False pula
+USAR_PCA = False
+
+# Silhueta desligada: as colunas de silhueta ficam NaN
+CALCULAR_SILHUETA = False
 RAZAO_MAXIMA_ATRIBUTOS_POR_LINHA = 0.10
 VARIANCIA_EXPLICADA_ALVO = 0.85
 NUMERO_MAXIMO_DE_COMPONENTES = 10
 
-# PC1 explicando mais que isto sinaliza uma direção dominante isolada --
-# indício de porte/volume da observação, não perfis distintos.
+# Variância de PC1 acima da qual se alerta para uma direção dominante
 VARIANCIA_PC1_ALERTA = 0.75
 
-# --- Escolha de k (cotovelo da curva de inércia, Thorndike, 1953) ---
+# Escolha de k pelo cotovelo da curva de inércia
 K_MINIMO = 2
-K_MAXIMO = 15  # teto da varredura -- ajuste conforme o tamanho da amostra
-SENSIBILIDADE_COTOVELO = 1.0  # mesma convenção do parâmetro S do joelho de eps no DBSCAN
-SEMENTES_DA_BUSCA = [SEMENTE_ALEATORIA]  # mais de uma semente testa sensibilidade à inicialização
+K_MAXIMO = 12  # teto da varredura de k
+SENSIBILIDADE_COTOVELO = 1.0  # parâmetro S do KneeLocator
+SEMENTES_DA_BUSCA = [0, 10, 30, 42, 66]  # sementes para testar a sensibilidade à inicialização
 NUMERO_DE_INICIALIZACOES = 10  # n_init do KMeans
 
-# Aviso pós-hoc (sem efeito sobre o resultado): o KMeans aloca todo ponto a
-# algum cluster -- não existe "ruído" como no DBSCAN.
+# Tamanho mínimo de cluster abaixo do qual se emite um aviso
 MINIMO_DE_ELEMENTOS_POR_CLUSTER = 4
 
 
-# Etapa 1: leitura dos CSVs de taxa e reformatação largo -> painel
+# Leitura dos CSVs de taxa e montagem do painel
+
+
 def _slug(texto):
     """'SEM INFORMAÇÃO' -> 'sem-informacao'. Sem acento, minúsculo, hifenizado."""
-    sem_acento = unicodedata.normalize("NFKD", str(texto).strip().lower())
-    sem_acento = "".join(c for c in sem_acento if not unicodedata.combining(c))
+    normalizado = unicodedata.normalize("NFKD", str(texto).strip().lower())
+    sem_acento = "".join(caractere for caractere in normalizado if not unicodedata.combining(caractere))
     return "-".join(sem_acento.split())
 
 
 def ler_csv_taxa_em_painel(caminho_csv, prefixo):
-    """
-    Lê um CSV de taxa (formato largo, colunas '<ano>_<categoria>_TAXA') e
-    devolve o painel: índice (REGIONAL DE SAÚDE, ANO), uma coluna por
-    categoria, prefixada. Só as colunas de TAXA entram (nunca o valor
-    absoluto) -- o agrupamento compara regionais entre si, e por isso
-    precisa de uma variável já ajustada por população.
-    """
+    """Lê um CSV de taxa (formato largo) e devolve o painel (REGIONAL, ANO) x categoria."""
     tabela = pd.read_csv(caminho_csv)
-    colunas_de_taxa = [c for c in tabela.columns if c.endswith(SUFIXO_COLUNA_TAXA)]
+    colunas_de_taxa = [coluna for coluna in tabela.columns if coluna.endswith(SUFIXO_COLUNA_TAXA)]
     if not colunas_de_taxa:
         raise ValueError(
             f"Nenhuma coluna de taxa ('{SUFIXO_COLUNA_TAXA}') em {Path(caminho_csv).name}."
@@ -155,8 +147,10 @@ def ler_csv_taxa_em_painel(caminho_csv, prefixo):
 
 
 def montar_painel(blocos=BLOCOS_DE_TAXA, pasta_taxa=PASTA_TAXA):
-
-    paineis = [ler_csv_taxa_em_painel(pasta_taxa / bloco["ARQUIVO"], bloco["PREFIXO"]) for bloco in blocos]
+    """Junta os painéis de todos os blocos em uma matriz (REGIONAL, ANO) x variável."""
+    paineis = []
+    for bloco in blocos:
+        paineis.append(ler_csv_taxa_em_painel(pasta_taxa / bloco["ARQUIVO"], bloco["PREFIXO"]))
     matriz = pd.concat(paineis, axis=1, join="outer").sort_index()
 
     colunas_duplicadas = matriz.columns[matriz.columns.duplicated()].tolist()
@@ -170,52 +164,15 @@ def montar_painel(blocos=BLOCOS_DE_TAXA, pasta_taxa=PASTA_TAXA):
     return matriz
 
 
-def calcular_janela_comum(blocos=BLOCOS_DE_TAXA, ano_inicial_manual=None, ano_final_manual=None):
-    """
-    Janela comum a todos os blocos: por padrão, a interseção das coberturas
-    declaradas (ANO_INICIAL/ANO_FINAL) de cada bloco. Com argumentos
-    manuais, usa o período informado e avisa se ele ultrapassa a
-    interseção calculada.
-    """
-    ano_inicial_calculado = max(bloco["ANO_INICIAL"] for bloco in blocos)
-    ano_final_calculado = min(bloco["ANO_FINAL"] for bloco in blocos)
-    if ano_inicial_calculado > ano_final_calculado:
-        raise ValueError(
-            f"Interseção vazia entre as coberturas dos blocos: {ano_inicial_calculado} > {ano_final_calculado}."
-        )
-
-    if ano_inicial_manual is None and ano_final_manual is None:
-        registrar_log(f"Janela comum (interseção dos períodos declarados de cada bloco): {ano_inicial_calculado}-{ano_final_calculado}.")
-        return ano_inicial_calculado, ano_final_calculado
-
-    ano_inicial = ano_inicial_manual if ano_inicial_manual is not None else ano_inicial_calculado
-    ano_final = ano_final_manual if ano_final_manual is not None else ano_final_calculado
-    if ano_inicial < ano_inicial_calculado or ano_final > ano_final_calculado:
-        registrar_log(
-            f"ATENÇÃO: janela comum manual {ano_inicial}-{ano_final} ultrapassa a interseção "
-            f"calculada das coberturas ({ano_inicial_calculado}-{ano_final_calculado}) -- algum "
-            "bloco terá anos sem dado (NaN) dentro dessa janela."
-        )
-    registrar_log(f"Janela comum: {ano_inicial}-{ano_final} (definida manualmente).")
-    return ano_inicial, ano_final
+# Descarte de colunas e tratamento de nulos
 
 
-def restringir_a_janela_comum(matriz, janela):
-    ano_inicial, ano_final = janela
-    anos = matriz.index.get_level_values(COLUNA_ANO)
-    matriz_restrita = matriz[(anos >= ano_inicial) & (anos <= ano_final)]
-    registrar_log(
-        f"Restrita à janela comum {ano_inicial}-{ano_final}: "
-        f"{matriz_restrita.shape[0]} de {matriz.shape[0]} par(es) regional-ano."
-    )
-    return matriz_restrita
-
-
-# Etapa 2: descarte de colunas e tratamento de nulos
 def descartar_colunas_sem_informacao_e_total(matriz, slugs_descartados=SLUGS_DE_CATEGORIA_DESCARTADOS):
-    """Remove colunas cuja categoria (parte do nome após o prefixo do
-    bloco) é 'sem informação' ou 'total'."""
-    colunas_a_descartar = [c for c in matriz.columns if c.rsplit("_", 1)[-1] in slugs_descartados]
+    """Remove as colunas de categoria 'sem informação' ou 'total'."""
+    colunas_a_descartar = []
+    for coluna in matriz.columns:
+        if coluna.rsplit("_", 1)[-1] in slugs_descartados:
+            colunas_a_descartar.append(coluna)
     if colunas_a_descartar:
         registrar_log(f"Descartada(s) {len(colunas_a_descartar)} coluna(s) sem-informação/total: {colunas_a_descartar}")
         matriz = matriz.drop(columns=colunas_a_descartar)
@@ -256,20 +213,14 @@ def tratar_nulos_sem_imputar(matriz):
     return matriz_sem_nulos
 
 
-# Etapa 3: padronização e PCA
+# Padronização e PCA (testado e não usado no pipeline final)
+
+
 def padronizar_e_reduzir(matriz, razao_maxima_atributos_por_linha=RAZAO_MAXIMA_ATRIBUTOS_POR_LINHA,
                           variancia_alvo=VARIANCIA_EXPLICADA_ALVO,
                           numero_maximo_de_componentes=NUMERO_MAXIMO_DE_COMPONENTES,
                           semente=SEMENTE_ALEATORIA, usar_pca=USAR_PCA):
-    """
-    RobustScaler (mediana / IQR) sempre. PCA conforme `usar_pca`: None
-    (padrão) decide sozinho pela razão nº de atributos / nº de linhas
-    (aplica se ultrapassar `razao_maxima_atributos_por_linha`); True força
-    PCA; False pula o PCA inteiramente.
-
-    Devolve (matriz_padronizada, matriz_reduzida, pca, variancia_acumulada).
-    pca/variancia_acumulada ficam None quando o PCA não é aplicado.
-    """
+    """Padroniza com RobustScaler e aplica PCA conforme `usar_pca`."""
     matriz_padronizada = RobustScaler().fit_transform(matriz)
     razao = matriz.shape[1] / matriz.shape[0]
 
@@ -294,10 +245,10 @@ def padronizar_e_reduzir(matriz, razao_maxima_atributos_por_linha=RAZAO_MAXIMA_A
     pca = PCA(n_components=numero_de_componentes, random_state=semente)
     matriz_reduzida = pca.fit_transform(matriz_padronizada)
 
-    motivo_aplicado = (
-        f"razão atributos/linhas = {razao:.3f} (> {razao_maxima_atributos_por_linha})" if usar_pca is None
-        else f"USAR_PCA=True (forçado; razão atributos/linhas = {razao:.3f})"
-    )
+    if usar_pca is None:
+        motivo_aplicado = f"razão atributos/linhas = {razao:.3f} (> {razao_maxima_atributos_por_linha})"
+    else:
+        motivo_aplicado = f"USAR_PCA=True (forçado; razão atributos/linhas = {razao:.3f})"
     registrar_log(
         f"PCA aplicado: {motivo_aplicado} -> {numero_de_componentes} componente(s), "
         f"{variancia_acumulada[numero_de_componentes - 1]:.1%} da variância acumulada."
@@ -306,8 +257,7 @@ def padronizar_e_reduzir(matriz, razao_maxima_atributos_por_linha=RAZAO_MAXIMA_A
 
 
 def preparar_projecao_2d(matriz_padronizada, matriz_reduzida, pca, semente=SEMENTE_ALEATORIA):
-    """PC1 x PC2 para visualização -- meramente ilustrativa quando o PCA
-    não foi aplicado no agrupamento (não influencia os rótulos)."""
+    """Projeção PC1 x PC2 apenas para visualização."""
     if pca is not None:
         return matriz_reduzida[:, :2], pca.explained_variance_ratio_[:2]
     pca_2d = PCA(n_components=2, random_state=semente).fit(matriz_padronizada)
@@ -315,23 +265,19 @@ def preparar_projecao_2d(matriz_padronizada, matriz_reduzida, pca, semente=SEMEN
 
 
 def pesos_das_variaveis_no_componente(pca, colunas, componente=1):
-    """Peso ('loading') de cada atributo original no componente principal
-    indicado (1-based), ordenado por magnitude."""
+    """Pesos (loadings) dos atributos no componente indicado, ordenados por magnitude."""
     if pca is None:
         raise ValueError("pesos_das_variaveis_no_componente requer PCA aplicado (pca is None).")
     pesos = pd.Series(pca.components_[componente - 1], index=colunas, name=f"PC{componente}")
     return pesos.reindex(pesos.abs().sort_values(ascending=False).index)
 
 
-# Etapa 4: escolha de k (cotovelo da curva de inércia)
+# Escolha de k pelo cotovelo da curva de inércia
+
+
 def calcular_inercia_e_silhueta_por_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXIMO,
                                        semente=SEMENTE_ALEATORIA, n_init=NUMERO_DE_INICIALIZACOES):
-    """
-    Inércia (WCSS) e silhueta do KMeans para cada k em [k_minimo, k_maximo]
-    (limitado por len(matriz)-1). A inércia decresce monotonicamente com k
-    -- o cotovelo (ver `escolher_k_pelo_cotovelo`) é o critério principal;
-    a silhueta entra como validação complementar.
-    """
+    """Calcula inércia (WCSS) e silhueta do KMeans para cada k da faixa."""
     limite_superior = min(k_maximo, len(matriz) - 1)
     if k_minimo > limite_superior:
         raise ValueError(
@@ -343,21 +289,28 @@ def calcular_inercia_e_silhueta_por_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXI
     for k in range(k_minimo, limite_superior + 1):
         modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init).fit(matriz)
         rotulos = modelo.labels_
-        silhueta = float(silhouette_score(matriz, rotulos)) if k >= 2 and len(matriz) > k else np.nan
-        linhas.append({"k": k, "inercia": float(modelo.inertia_), "silhueta": silhueta})
+        silhueta = np.nan
+        if CALCULAR_SILHUETA and k >= 2 and len(matriz) > k:
+            silhueta = float(silhouette_score(matriz, rotulos))
+        linhas.append({
+            "k": k,
+            "inercia": float(modelo.inertia_),
+            "silhueta": silhueta,
+            "n_iter_": int(modelo.n_iter_),
+        })
 
     tabela = pd.DataFrame(linhas)
-    registrar_log(f"Inércia e silhueta calculadas para k = {k_minimo}..{limite_superior} ({len(tabela)} valor(es) de k).")
+    medidas_calculadas = "Inércia"
+    if CALCULAR_SILHUETA:
+        medidas_calculadas = "Inércia e silhueta"
+    registrar_log(
+        f"{medidas_calculadas} calculada(s) para k = {k_minimo}..{limite_superior} ({len(tabela)} valor(es) de k)."
+    )
     return tabela
 
 
 def escolher_k_pelo_cotovelo(tabela_k, sensibilidade=SENSIBILIDADE_COTOVELO):
-    """
-    Cotovelo da curva de inércia (Thorndike, 1953) via kneed
-    (curve='convex', direction='decreasing') -- não fixado à mão. Mesma
-    técnica (KneeLocator) usada para estimar eps no DBSCAN, aplicada agora
-    à curva de inércia em função de k.
-    """
+    """Escolhe k pelo cotovelo da curva de inércia (KneeLocator)."""
     localizador = KneeLocator(
         tabela_k["k"].to_numpy(), tabela_k["inercia"].to_numpy(),
         S=sensibilidade, curve="convex", direction="decreasing",
@@ -380,8 +333,7 @@ def escolher_k_pelo_cotovelo(tabela_k, sensibilidade=SENSIBILIDADE_COTOVELO):
 
 def busca_em_grade_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXIMO, sementes=SEMENTES_DA_BUSCA,
                       n_init=NUMERO_DE_INICIALIZACOES):
-    """Validação complementar ao cotovelo: inércia e silhueta de cada
-    combinação (k, semente) via ParameterGrid."""
+    """Calcula inércia e silhueta para cada combinação (k, semente)."""
     limite_superior = min(k_maximo, len(matriz) - 1)
     if k_minimo > limite_superior:
         raise ValueError(
@@ -396,29 +348,45 @@ def busca_em_grade_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXIMO, sementes=SEME
         k, semente = combinacao["k"], combinacao["semente"]
         modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init).fit(matriz)
         rotulos = modelo.labels_
-        silhueta = float(silhouette_score(matriz, rotulos)) if k >= 2 and len(matriz) > k else np.nan
-        linhas.append({"k": k, "semente": semente, "inercia": float(modelo.inertia_), "silhueta": silhueta})
+        silhueta = np.nan
+        if CALCULAR_SILHUETA and k >= 2 and len(matriz) > k:
+            silhueta = float(silhouette_score(matriz, rotulos))
+        linhas.append({
+            "k": k,
+            "semente": semente,
+            "inercia": float(modelo.inertia_),
+            "silhueta": silhueta,
+            "n_iter_": int(modelo.n_iter_),
+        })
 
     return pd.DataFrame(linhas).sort_values(["k", "semente"]).reset_index(drop=True)
 
 
-# Etapa 5: KMeans
+def maximo_de_iteracoes_usadas(*tabelas):
+    """Maior n_iter_ entre todas as execuções de KMeans das tabelas."""
+    return max(int(tabela["n_iter_"].max()) for tabela in tabelas)
+
+
+# Execução do KMeans
+
+
 def executar_kmeans(matriz, k, semente=SEMENTE_ALEATORIA, n_init=NUMERO_DE_INICIALIZACOES):
+    """Roda o KMeans e devolve os rótulos numerados a partir de 1 (Cluster 1..k) e o modelo."""
     modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init).fit(matriz)
-    return modelo.labels_, modelo
+    return modelo.labels_ + 1, modelo
 
 
 def resumir_agrupamento_kmeans(matriz, rotulos, modelo):
-    """KMeans não tem ruído (todo ponto pertence a algum cluster) -- por
-    isso a silhueta aqui é uma única versão, sobre todos os pontos."""
+    """Devolve nº de clusters, inércia e silhueta do agrupamento."""
     n_clusters = len(set(rotulos))
     silhueta = np.nan
-    if n_clusters >= 2 and len(matriz) > n_clusters:
+    if CALCULAR_SILHUETA and n_clusters >= 2 and len(matriz) > n_clusters:
         silhueta = float(silhouette_score(matriz, rotulos))
     return n_clusters, float(modelo.inertia_), silhueta
 
 
 def diagnostico_tamanho_dos_clusters(rotulos, minimo=MINIMO_DE_ELEMENTOS_POR_CLUSTER):
+    """Devolve o tamanho de cada cluster e avisa sobre os menores que `minimo`."""
     tamanhos = pd.Series(rotulos).value_counts().sort_index()
     pequenos = tamanhos[tamanhos < minimo]
     if not pequenos.empty:
@@ -433,13 +401,24 @@ def diagnostico_tamanho_dos_clusters(rotulos, minimo=MINIMO_DE_ELEMENTOS_POR_CLU
 
 
 # Saídas finais em DataFrame
+
+
 def montar_resumo_parametros_kmeans(k, inercia, silhueta, usar_robust_scaler, pca, variancia_acumulada,
                                      n_linhas, n_atributos, n_clusters):
-    n_componentes_pca = int(pca.n_components_) if pca is not None else np.nan
-    variancia_explicada = float(variancia_acumulada[n_componentes_pca - 1]) if pca is not None else np.nan
+    """Resume em uma linha os parâmetros e resultados do agrupamento."""
+    n_componentes_pca = np.nan
+    variancia_explicada = np.nan
+    if pca is not None:
+        n_componentes_pca = int(pca.n_components_)
+        variancia_explicada = float(variancia_acumulada[n_componentes_pca - 1])
+
+    escalonador = "nenhum"
+    if usar_robust_scaler:
+        escalonador = "RobustScaler"
+
     return pd.DataFrame([{
         "K": k,
-        "ESCALONADOR": "RobustScaler" if usar_robust_scaler else "nenhum",
+        "ESCALONADOR": escalonador,
         "PCA_APLICADO": pca is not None,
         "PCA_N_COMPONENTES": n_componentes_pca,
         "PCA_VARIANCIA_EXPLICADA": variancia_explicada,
@@ -464,10 +443,12 @@ def montar_visao_agregada_regional_ano(tabela_pertencimento):
 
 
 def montar_resumo_por_cluster(tabela_pertencimento):
-    """Uma linha por CLUSTER: quantidade de pares, quantas Regionais
-    distintas caem nele e a lista de 'REGIONAL (ANO)' membros."""
+    """Resumo por CLUSTER: nº de pares, nº de Regionais distintas e lista de membros."""
     def _membros(grupo):
-        return ", ".join(f"{r} ({a})" for r, a in zip(grupo[COLUNA_REGIONAL], grupo[COLUNA_ANO]))
+        membros = []
+        for regional, ano in zip(grupo[COLUNA_REGIONAL], grupo[COLUNA_ANO]):
+            membros.append(f"{regional} ({ano})")
+        return ", ".join(membros)
 
     resumo = tabela_pertencimento.groupby("CLUSTER").apply(
         lambda grupo: pd.Series({
@@ -478,3 +459,103 @@ def montar_resumo_por_cluster(tabela_pertencimento):
         include_groups=False,
     ).reset_index().sort_values("CLUSTER").reset_index(drop=True)
     return resumo
+
+
+# Caracterização dos clusters pelas variáveis originais (sem teste de significância, que seria circular)
+NUMERO_DE_VARIAVEIS_DISCRIMINANTES = 15
+
+
+def calcular_iqr_geral(matriz):
+    """IQR de cada variável com o mesmo Q1/Q3 do RobustScaler; NaN onde o IQR é 0."""
+    q1, q3 = np.nanpercentile(matriz.to_numpy(dtype=float), [25, 75], axis=0)
+    iqr = pd.Series(q3 - q1, index=matriz.columns)
+    return iqr.where(iqr > 0)
+
+
+def calcular_caracterizacao_por_cluster(matriz, rotulos):
+    """Diferença entre a média do cluster e a média geral em unidades de IQR geral, ordenada por módulo."""
+    colunas = matriz.columns.tolist()
+    media_geral = matriz.mean()
+    iqr_geral = calcular_iqr_geral(matriz)
+
+    tabela_pertencimento = montar_tabela_pertencimento(matriz.index, rotulos)
+    matriz_com_cluster = matriz.reset_index(drop=True).copy()
+    matriz_com_cluster["CLUSTER"] = tabela_pertencimento["CLUSTER"].to_numpy()
+    medias_por_cluster = matriz_com_cluster.groupby("CLUSTER")[colunas].mean()
+
+    tabela = medias_por_cluster.stack().rename("MEDIA_CLUSTER").reset_index()
+    tabela.columns = ["CLUSTER", "VARIAVEL", "MEDIA_CLUSTER"]
+    tabela["MEDIA_GERAL"] = tabela["VARIAVEL"].map(media_geral)
+    diferenca = tabela["MEDIA_CLUSTER"] - tabela["MEDIA_GERAL"]
+    tabela["DIFERENCA_PADRONIZADA"] = diferenca / tabela["VARIAVEL"].map(iqr_geral)
+    tabela["DIFERENCA_PERCENTUAL"] = np.where(
+        tabela["MEDIA_GERAL"] != 0, diferenca / tabela["MEDIA_GERAL"].abs() * 100, np.nan,
+    )
+
+    tabela["_DIFERENCA_ABS"] = tabela["DIFERENCA_PADRONIZADA"].abs()
+    tabela = tabela.sort_values(["CLUSTER", "_DIFERENCA_ABS"], ascending=[True, False], na_position="last")
+    tabela = tabela.drop(columns="_DIFERENCA_ABS").reset_index(drop=True)
+    sem_iqr = iqr_geral[iqr_geral.isna()].index.tolist()
+    if sem_iqr:
+        registrar_log(f"ATENÇÃO: {len(sem_iqr)} variável(is) com IQR geral = 0 (sem diferença padronizada): {sem_iqr}")
+    registrar_log(
+        f"Caracterização por cluster: {matriz_com_cluster['CLUSTER'].nunique()} cluster(s) x "
+        f"{len(colunas)} variável(is)."
+    )
+    return tabela
+
+
+def selecionar_variaveis_mais_discriminantes(tabela_caracterizacao, top_n=NUMERO_DE_VARIAVEIS_DISCRIMINANTES):
+    """Seleciona as `top_n` variáveis de maior diferença padronizada em módulo por cluster."""
+    return tabela_caracterizacao.groupby("CLUSTER", group_keys=False).head(top_n).reset_index(drop=True)
+
+
+def descrever_caracterizacao_por_cluster(caracterizacao_por_cluster, resumo_por_cluster,
+                                          top_n=NUMERO_DE_VARIAVEIS_DISCRIMINANTES):
+    """Gera um parágrafo em Markdown por cluster descrevendo suas variáveis mais discriminantes."""
+    tamanhos = resumo_por_cluster.set_index("CLUSTER")["N_PARES"]
+    paragrafos = []
+    for cluster, grupo in caracterizacao_por_cluster.groupby("CLUSTER"):
+        partes = []
+        for _, linha in grupo.head(top_n).iterrows():
+            if pd.isna(linha["DIFERENCA_PADRONIZADA"]):
+                continue
+
+            sentido = "abaixo"
+            if linha["DIFERENCA_PADRONIZADA"] >= 0:
+                sentido = "acima"
+
+            descricao = (
+                f"**{linha['VARIAVEL']}** {sentido} da média geral "
+                f"em {abs(linha['DIFERENCA_PADRONIZADA']):.2f} IQR"
+            )
+            if pd.notna(linha["DIFERENCA_PERCENTUAL"]):
+                descricao += f" ({linha['DIFERENCA_PERCENTUAL']:+.1f}%)"
+            partes.append(descricao)
+
+        n_pares = int(tamanhos.get(cluster, np.nan))
+        paragrafos.append(
+            f"- **Cluster {cluster}** ({n_pares} pares Regional-Ano): " + "; ".join(partes) + "."
+        )
+    return "\n".join(paragrafos)
+
+
+# Decomposição da distância² de cada par Regional-Ano ao centroide do seu cluster
+
+
+def calcular_parcelas_distancia_ao_centroide(matriz_para_kmeans, modelo, indice, colunas):
+    """Parcela (valor − centroide)² de cada variável por linha; somadas dão a distância² ao centroide usada pelo KMeans."""
+    valores = np.asarray(matriz_para_kmeans, dtype=float)
+    if valores.shape != (len(indice), len(colunas)) or len(modelo.labels_) != len(indice):
+        raise ValueError(
+            f"Dimensões incompatíveis: matriz {valores.shape}, índice {len(indice)}, colunas {len(colunas)}, "
+            f"rótulos do modelo {len(modelo.labels_)} -- use a mesma matriz em que o KMeans foi ajustado."
+        )
+    parcelas = (valores - modelo.cluster_centers_[modelo.labels_]) ** 2
+
+    tabela = pd.DataFrame(parcelas, index=indice, columns=pd.Index(list(colunas), name="VARIAVEL"))
+    tabela["CLUSTER"] = modelo.labels_ + 1
+    tabela = tabela.set_index("CLUSTER", append=True).stack().rename("PARCELA_DISTANCIA").reset_index()
+    return tabela.sort_values(
+        [COLUNA_REGIONAL, COLUNA_ANO, "PARCELA_DISTANCIA"], ascending=[True, True, False],
+    ).reset_index(drop=True)
