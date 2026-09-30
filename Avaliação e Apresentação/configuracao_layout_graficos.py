@@ -1,65 +1,63 @@
-import plotly.express as px
+FORMATO_VALOR_BARRA = ",.0f"  # separador de milhar e nenhuma casa decimal
 
-# --- Gráfico de barra + linha ---
-MOSTRAR_VALOR_NAS_BARRAS = True
-MOSTRAR_VALOR_NA_LINHA = True
-
-FORMATO_VALOR_BARRA = ",.0f" # vírgula = separador de milhar, .0f = zero casas decimais (número inteiro)
-FORMATO_VALOR_LINHA = ".1f"
-POSICAO_VALOR_BARRA = "outside"
-# "top right": Deslocando a linha para a direita, os dois textos
-# raramente ocupam o mesmo espaço mesmo quando as alturas coincidem.
-POSICAO_VALOR_LINHA = "top right"
-
-# --- Gráfico empilhado ---
 COR_SEM_INFORMACAO = "#B0B0B0"
-PALETA_QUALITATIVA = px.colors.qualitative.Safe # Cor automática por categoria, se faltar
 
 CORES_CATEGORIAS_CUSTOMIZADAS = {}
 
-# --- Gráfico empilhado —--
-NORMALIZAR_PARA_100_PORCENTO = False # mostrar absoluto ou percentual
-LIMIAR_MOSTRAR_ROTULO = 3.0 # acima de 3% da barra
-LARGURA_MINIMA_POR_CATEGORIA = 65 # espaço entre elas
+# Gráfico de linha categórico
 
-CORES_VARIAVEIS_PADRAO = {"COR_BARRA": "#428BD4", "COR_LINHA": "#C0392B"}
+PALETA_CATEGORIAS_FORTE = [
+    "#E41A1C",
+    "#F781BF",
+    "#A65628",
+    "#4DAF4A",
+    "#377EB8",
+    "#FF7F00",
+    "#984EA3",
+    "#D4AC0D",
+]
 
-CORES_VARIAVEIS = {
-    "Casos": {"COR_BARRA": "#428BD4", "COR_LINHA": "#C0392B"},
-    "Mortalidade": {"COR_BARRA": "#428BD4", "COR_LINHA": "#C0392B"},
-    "Mamografia": {"COR_BARRA": "#428BD4", "COR_LINHA": "#C0392B"},
-    "Hospitais": {"COR_BARRA": "#428BD4", "COR_LINHA": "#C0392B"},
-}
+# Os símbolos alternam na mesma ordem da paleta
+MARCADORES_CATEGORIAS = ["circle", "square", "diamond", "triangle-up", "triangle-down", "star", "cross", "x"]
+MARCADOR_SEM_INFORMACAO = "circle-open"
 
-def obter_cores_variavel(nome_da_variavel):
-    '''
-    Cor de barra/linha da variável, chama
-    CORES_VARIAVEIS_PADRAO quando o nome não está em CORES_VARIAVEIS.
-    '''
-    return CORES_VARIAVEIS.get(nome_da_variavel, CORES_VARIAVEIS_PADRAO)
+TAMANHO_MARCADOR_LINHA_CATEGORICA = 11
+LARGURA_BORDA_MARCADOR_LINHA_CATEGORICA = 1.5
+COR_BORDA_MARCADOR_LINHA_CATEGORICA = "#FFFFFF"
 
+# Rótulo de valor só nos anos múltiplos da frequência, a partir do ano âncora
+FREQUENCIA_ROTULO_LINHA_CATEGORICA = 4
+ANO_ANCORA_ROTULO_LINHA_CATEGORICA = 1999
+TAMANHO_FONTE_VALOR_LINHA_CATEGORICA = 14
 
-# --- Tamanhos de fonte ---
+# Largura mínima por ano no eixo X, em px
+LARGURA_MINIMA_POR_ANO_LINHA_CATEGORICA = 73
+
+# Esconde o rótulo de pontos abaixo desta fração do maior valor do gráfico
+LIMIAR_ROTULO_LINHA_CATEGORICA = 0.03
+
+# Posição do rótulo de valor (textposition do Plotly), alternada por categoria
+POSICOES_ROTULO_LINHA_CATEGORICA = [
+    "top center", "bottom center", "top right", "bottom left",
+    "middle right", "middle left", "top left", "bottom right",
+]
+
+# Largura mínima por categoria no eixo X, em px
+LARGURA_MINIMA_POR_CATEGORIA = 65
+
+# Tamanhos de fonte
 
 MULTIPLICADOR_FONTE_GLOBAL = 1.0
 
-TAMANHO_FONTE_VALOR_BARRA = 13
-TAMANHO_FONTE_VALOR_LINHA = 13
-TAMANHO_FONTE_ROTULO_EMPILHADO = 12
 TAMANHO_FONTE_TITULO = 18
 TAMANHO_FONTE_TITULO_EIXO = 14
 TAMANHO_FONTE_TICK_EIXO = 12
 TAMANHO_FONTE_LEGENDA = 12
 
-# --- Tamanhos de fonte -- gráfico de linha dupla (Quantidade x Taxa
-# por categoria) -- maiores que o padrão acima, para igualar o tamanho
-# de fonte de título/legenda usado nos mapas
-# (mapa_regional_valores_absolutos.ipynb: TAMANHO_FONTE_TITULO_MAPA=24,
-# TAMANHO_FONTE_LEGENDA_MAPA=16).
 TAMANHO_FONTE_TITULO_GRAFICO_LINHA = 24
-TAMANHO_FONTE_TITULO_EIXO_GRAFICO_LINHA = 18
-TAMANHO_FONTE_TICK_EIXO_GRAFICO_LINHA = 14
-TAMANHO_FONTE_LEGENDA_GRAFICO_LINHA = 16
+TAMANHO_FONTE_TITULO_EIXO_GRAFICO_LINHA = 19
+TAMANHO_FONTE_TICK_EIXO_GRAFICO_LINHA = 15
+TAMANHO_FONTE_LEGENDA_GRAFICO_LINHA = 20  # o ícone da legenda escala com a fonte
 
 
 def tamanho_fonte(tamanho_base):
