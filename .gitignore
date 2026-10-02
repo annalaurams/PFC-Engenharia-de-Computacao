@@ -7,5 +7,8 @@ wheels/
 *.egg-info
 
 # Virtual environments
+.claude
+.vscode
 .venv
-Mineração de Dados/
+
+
