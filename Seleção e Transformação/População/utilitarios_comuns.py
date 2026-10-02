@@ -8,8 +8,6 @@ COLUNA_CODIGO_IBGE = "CÓDIGO IBGE"
 COLUNA_REGIONAL = "REGIONAL DE SAÚDE"
 COLUNA_ANO = "ANO"
 COLUNA_TIPO = "TIPO"
-COLUNA_QUANTIDADE = "QUANTIDADE"
-COLUNA_POPULACAO = "POPULACAO"
 
 SUFIXO_COLUNA_TOTAL = "_TOTAL"
 SUFIXO_COLUNA_TAXA = "_TAXA"
@@ -18,10 +16,7 @@ MULTIPLICADOR_TAXA = 100_000
 
 POPULACAO_MINIMA_VALIDA = 1
 
-# Faixas etárias decenais padronizadas, usadas tanto nas bases de eventos
-# (Casos por Faixa Etária, Mortalidade, Mamografia) quanto na base de
-# população -- permite casar coluna de evento com a coluna de população da
-# mesma faixa e ano, em vez de sempre usar a população total como denominador.
+# Faixas etárias decenais comuns às bases de eventos e à de população.
 FAIXAS_ETARIAS_PADRAO = ("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70 OU MAIS")
 
 PASTA_POPULACAO = Path(__file__).resolve().parent
@@ -35,6 +30,7 @@ def registrar_log(mensagem):
 
 
 def normalizar_codigo_ibge(serie_codigo_ibge):
+    """Converte o código IBGE para inteiro anulável."""
     return pd.to_numeric(
         serie_codigo_ibge.astype(str).str.strip(),
         errors="coerce",
@@ -42,6 +38,8 @@ def normalizar_codigo_ibge(serie_codigo_ibge):
 
 
 def normalizar_regional(serie_regional):
+    """Normaliza o nome da Regional (minúsculo e sem acentos)."""
+
     def _normalizar(valor):
         if pd.isna(valor):
             return valor
@@ -50,7 +48,9 @@ def normalizar_regional(serie_regional):
 
     return serie_regional.apply(_normalizar)
 
+
 def extrair_ano_da_coluna(nome_da_coluna):
+    """Extrai o ano do prefixo "<ano>_" da coluna; None se não houver."""
     ano_em_texto, separador, _ = nome_da_coluna.partition("_")
     if separador and ano_em_texto.isdigit():
         return int(ano_em_texto)
@@ -59,18 +59,7 @@ def extrair_ano_da_coluna(nome_da_coluna):
 
 
 def selecionar_colunas_de_valor(tabela, ano_inicial, ano_final, colunas_a_ignorar, somente_total=False):
-    '''
-    somente_total=True restringe a seleção às colunas terminadas em
-    SUFIXO_COLUNA_TOTAL ("<ano>_TOTAL") -- uma única coluna de valor
-    por ano. Necessário para variáveis "simples" (Casos, Mortalidade,
-    Mamografia, Hospitais) cujas bases de origem são segmentadas por
-    faixa etária: sem esse filtro, cada ano teria uma coluna
-    "<ano>_<faixa>" por faixa ALÉM de "<ano>_TOTAL", todas passando no
-    filtro de ano abaixo -- múltiplas colunas de valor para o mesmo
-    ano. O padrão (False) preserva o comportamento anterior e é o que
-    as variáveis categóricas continuam usando (elas precisam das
-    colunas de categoria, não só do total).
-    '''
+    """Seleciona as colunas "<ano>_..." do período; somente_total=True mantém só "<ano>_TOTAL"."""
     colunas_selecionadas = []
     for coluna in tabela.columns:
         if coluna in colunas_a_ignorar:
@@ -87,14 +76,7 @@ def selecionar_colunas_de_valor(tabela, ano_inicial, ano_final, colunas_a_ignora
 
 
 def verificar_anos_unicos(colunas_de_valor, nome_da_variavel=""):
-    '''
-    Levanta ValueError se colunas_de_valor tiver mais de uma coluna
-    para o mesmo ano -- sintoma de esquecer somente_total=True numa
-    variável simples (base segmentada por faixa etária/categoria).
-    Gráficos de barra+linha não detectam isso sozinhos: só produzem
-    barras sobrepostas e uma linha ligando pontos fora de ordem, sem
-    erro nenhum -- por isso a checagem explícita.
-    '''
+    """Levanta ValueError se houver mais de uma coluna de valor para o mesmo ano."""
     anos = [extrair_ano_da_coluna(coluna) for coluna in colunas_de_valor]
     anos_repetidos = sorted({ano for ano in anos if ano is not None and anos.count(ano) > 1})
     if anos_repetidos:
@@ -108,6 +90,7 @@ def verificar_anos_unicos(colunas_de_valor, nome_da_variavel=""):
 
 
 def filtrar_populacao_valida_por_municipio(tabela_populacao, colunas_de_populacao):
+    """Anula a população inválida (ausente ou abaixo do mínimo) para ela não entrar na soma por Regional."""
     mascara_invalida = (
         (tabela_populacao[colunas_de_populacao] < POPULACAO_MINIMA_VALIDA)
         | tabela_populacao[colunas_de_populacao].isna()
@@ -125,33 +108,7 @@ def filtrar_populacao_valida_por_municipio(tabela_populacao, colunas_de_populaca
     return tabela_filtrada
 
 
-def carregar_populacao_por_regional():
-    '''
-    Carrega a população de referência por município (já interpolada/
-    extrapolada) e agrega por Regional de Saúde e ano, excluindo
-    municípios sem população válida (< POPULACAO_MINIMA_VALIDA) em cada
-    ano -- o mesmo critério usado por calculo_taxa.ipynb para somar a
-    população por regional antes de calcular a taxa.
-
-    Devolve um DataFrame indexado por REGIONAL DE SAÚDE, com uma
-    coluna "<ano>_TOTAL" por ano disponível -- usado pelos notebooks de
-    gráfico para recalcular a população agregada sem depender de uma
-    coluna de população no CSV de taxa (que não guarda mais isso).
-    '''
-    tabela_populacao = pd.read_csv(CAMINHO_POPULACAO)
-    tabela_populacao[COLUNA_CODIGO_IBGE] = normalizar_codigo_ibge(tabela_populacao[COLUNA_CODIGO_IBGE])
-    tabela_populacao[COLUNA_REGIONAL] = normalizar_regional(tabela_populacao[COLUNA_REGIONAL])
-
-    colunas_de_populacao = [c for c in tabela_populacao.columns if c.endswith(SUFIXO_COLUNA_TOTAL)]
-    tabela_populacao_filtrada = filtrar_populacao_valida_por_municipio(tabela_populacao, colunas_de_populacao)
-
-    return (
-        tabela_populacao_filtrada.groupby(COLUNA_REGIONAL)[colunas_de_populacao]
-        .sum(min_count=1)
-    )
-
-
-# Especificações de cada variável -- caminho de entrada, período e nome do arquivo de saída da taxa. 
+# Especificações de cada variável: entrada, período e arquivo de saída da taxa
 
 ESPECIFICACOES_VARIAVEIS = {
     "Casos": {
@@ -201,15 +158,7 @@ ESPECIFICACOES_VARIAVEIS_CATEGORICAS = {
     },
 }
 
-# Sufixo de coluna de cada variável dentro do CSV agregado estadual por
-# ano (NOME_ARQUIVO_AGREGADO_CATEGORICO_POR_ANO, gerado por
-# calculo_taxa.ipynb) -- todas as variáveis (simples e categóricas)
-# compartilham um único arquivo, formato "<ano>_<categoria>_<SUFIXO>"
-# (ex.: "1979_0-9_MORTES", "1985_TOTAL_CASOS"). "Casos por Escolaridade"
-# e "Casos por Raça e Cor" precisam de um sufixo próprio (em vez do
-# "CASOS" comum às demais quebras de Casos) porque as duas têm uma
-# categoria com o mesmo nome ("SEM INFORMAÇÃO") -- sem isso colidiriam
-# na mesma coluna.
+# Sufixo de cada variável no CSV agregado estadual por ano (formato "<ano>_<categoria>_<SUFIXO>")
 SUFIXO_VARIAVEL_ESTADUAL = {
     "Casos": "CASOS",
     "Mortalidade": "MORTES",

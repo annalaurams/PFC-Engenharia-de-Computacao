@@ -1,18 +1,17 @@
-import os
-import time
+# Extrai do Mortalidade Web (INCA) os óbitos por câncer de mama (C50) de uma cidade, um CSV por ano.
+
 import glob
+import os
 import shutil
+import time
+
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
-from selenium.common.exceptions import (
-    ElementClickInterceptedException,
-    NoSuchElementException,
-    TimeoutException,
-)
+from selenium.common.exceptions import ElementClickInterceptedException, TimeoutException
 
 # Configuração
 
@@ -21,18 +20,21 @@ REGIONAL_SAUDE = "Unaí"
 UF = "MG"
 
 PERIODO = [
-    1981, 1984, 1987, 1988, 1989, 1990, 1993, 1994, 1996, 1997, 1998, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010, 2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024
+    1981, 1984, 1987, 1988, 1989, 1990, 1993, 1994, 1996, 1997,
+    1998, 2001, 2002, 2004, 2005, 2006, 2007, 2008, 2009, 2010,
+    2011, 2012, 2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020,
+    2021, 2022, 2023, 2024,
 ]
 
-DOWNLOADS_PATH = "/home/anna/Downloads"
-BASE_PROJECT_PATH = "/home/anna/tcc/Limpeza e Integração/Mortalidade/Cidades Atendidas por Cada Regional"
-PASTA_DESTINO_CIDADE = os.path.join(BASE_PROJECT_PATH, f"{CIDADE}-{UF}")
+PASTA_DOWNLOADS = "/home/anna/Downloads"
+PASTA_BASE_PROJETO = "/home/anna/tcc/Limpeza e Integração/Mortalidade/Cidades Atendidas por Cada Regional"
+PASTA_DESTINO_CIDADE = os.path.join(PASTA_BASE_PROJETO, f"{CIDADE}-{UF}")
 os.makedirs(PASTA_DESTINO_CIDADE, exist_ok=True)
 
 URL = "https://www.inca.gov.br/MortalidadeWeb/pages/Modelo10/consultar.xhtml"
 MAX_TENTATIVAS = 3
 
-# Filtros aplicados na consulta (Mortalidade Web - INCA):
+# Filtros da consulta (Mortalidade Web - INCA)
 SEXO_ID = "2"              # Feminino
 LOCALIZACAO_PRIMARIA_TEXTO = "C50 - MAMA"
 NIVEL_LOCALIDADE_ID = "5"  # Município
@@ -43,7 +45,6 @@ TIPO_COLUNA_ID = "2"       # Coluna do tabulador = Município
 FAIXA_ETARIA_INICIAL = "0"
 FAIXA_ETARIA_FINAL = "999"  # sem limite superior (todas as idades)
 
-# ________________________________________________________________________________
 # Utilidades
 
 def log_status(ano, mensagem, tipo="INFO"):
@@ -52,17 +53,17 @@ def log_status(ano, mensagem, tipo="INFO"):
 
 
 def iniciar_driver():
-    options = webdriver.ChromeOptions()
-    prefs = {
-        "download.default_directory": DOWNLOADS_PATH,
+    opcoes = webdriver.ChromeOptions()
+    preferencias = {
+        "download.default_directory": PASTA_DOWNLOADS,
         "download.prompt_for_download": False,
         "download.directory_upgrade": True,
         "safebrowsing.enabled": True,
     }
-    options.add_experimental_option("prefs", prefs)
-    options.add_experimental_option("detach", True)
+    opcoes.add_experimental_option("prefs", preferencias)
+    opcoes.add_experimental_option("detach", True)
     return webdriver.Chrome(
-        service=Service(ChromeDriverManager().install()), options=options
+        service=Service(ChromeDriverManager().install()), options=opcoes
     )
 
 
@@ -75,45 +76,45 @@ def driver_esta_ativo(driver):
 
 
 def limpar_downloads_temp():
-    for f in glob.glob(os.path.join(DOWNLOADS_PATH, "ModeloTabulador_*.csv")):
+    for arquivo in glob.glob(os.path.join(PASTA_DOWNLOADS, "ModeloTabulador_*.csv")):
         try:
-            os.remove(f)
+            os.remove(arquivo)
         except Exception:
             pass
 
 
-def select_by_name(driver, name, value_or_text, by="value", timeout=15):
-    wait = WebDriverWait(driver, timeout)
-    element = wait.until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, f'select[name="{name}"]'))
+def selecionar_por_nome(driver, nome, valor_ou_texto, por="value", tempo_limite=15):
+    espera = WebDriverWait(driver, tempo_limite)
+    elemento = espera.until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, f'select[name="{nome}"]'))
     )
-    sel = Select(element)
-    if by == "value":
-        sel.select_by_value(value_or_text)
+    seletor = Select(elemento)
+    if por == "value":
+        seletor.select_by_value(valor_ou_texto)
     else:
-        sel.select_by_visible_text(value_or_text)
+        seletor.select_by_visible_text(valor_ou_texto)
 
 
-def select_by_id(driver, element_id, value_or_text, by="value", timeout=15):
-    wait = WebDriverWait(driver, timeout)
-    element = wait.until(
-        EC.presence_of_element_located((By.ID, element_id))
+def selecionar_por_id(driver, id_elemento, valor_ou_texto, por="value", tempo_limite=15):
+    espera = WebDriverWait(driver, tempo_limite)
+    elemento = espera.until(
+        EC.presence_of_element_located((By.ID, id_elemento))
     )
-    sel = Select(element)
-    if by == "value":
-        sel.select_by_value(value_or_text)
+    seletor = Select(elemento)
+    if por == "value":
+        seletor.select_by_value(valor_ou_texto)
     else:
-        sel.select_by_visible_text(value_or_text)
+        seletor.select_by_visible_text(valor_ou_texto)
 
 
-def aguardar_ajax(driver, timeout=10):
+def aguardar_ajax(driver, tempo_limite=10):
     try:
-        WebDriverWait(driver, timeout).until(
+        WebDriverWait(driver, tempo_limite).until(
             lambda d: d.execute_script(
                 "return document.readyState === 'complete'"
             )
         )
-        WebDriverWait(driver, timeout).until(
+        WebDriverWait(driver, tempo_limite).until(
             lambda d: all(
                 not el.is_displayed()
                 for el in d.find_elements(By.CSS_SELECTOR, "img.loading")
@@ -122,7 +123,7 @@ def aguardar_ajax(driver, timeout=10):
     except Exception:
         pass
 
-def aguardar_resultado_ou_erro(driver, timeout=40):
+def aguardar_resultado_ou_erro(driver, tempo_limite=40):
     def condicao(d):
         try:
             painel = d.find_element(By.ID, "panelResultado")
@@ -139,7 +140,7 @@ def aguardar_resultado_ou_erro(driver, timeout=40):
         return False
 
     try:
-        WebDriverWait(driver, timeout).until(condicao)
+        WebDriverWait(driver, tempo_limite).until(condicao)
     except TimeoutException:
         pass
 
@@ -168,12 +169,12 @@ def verificar_sem_resultado(driver):
     return False
 
 
-def aplicar_filtros(driver, wait):
+def aplicar_filtros(driver, espera):
     try:
-        select_by_id(driver, "formModeloTabulador:comboSexo", SEXO_ID)
+        selecionar_por_id(driver, "formModeloTabulador:comboSexo", SEXO_ID)
         time.sleep(2)
 
-        wait.until(
+        espera.until(
             EC.element_to_be_clickable((By.XPATH, f"//li[contains(text(),'{LOCALIZACAO_PRIMARIA_TEXTO}')]"))
         ).click()
         time.sleep(1)
@@ -181,19 +182,19 @@ def aplicar_filtros(driver, wait):
         driver.find_element(By.CLASS_NAME, "ui-picklist-button-add").click()
         time.sleep(2)
 
-        select_by_id(driver, "formModeloTabulador:nivelLocalidade", NIVEL_LOCALIDADE_ID)
+        selecionar_por_id(driver, "formModeloTabulador:nivelLocalidade", NIVEL_LOCALIDADE_ID)
         time.sleep(3)
 
-        select_by_id(driver, "formModeloTabulador:regiao", REGIAO_ID)
+        selecionar_por_id(driver, "formModeloTabulador:regiao", REGIAO_ID)
         time.sleep(3)
 
-        select_by_id(driver, "formModeloTabulador:estado", ESTADO_ID)
+        selecionar_por_id(driver, "formModeloTabulador:estado", ESTADO_ID)
         time.sleep(3)
 
-        select_by_id(driver, "formModeloTabulador:regionalSaude", REGIONAL_SAUDE, by="text")
+        selecionar_por_id(driver, "formModeloTabulador:regionalSaude", REGIONAL_SAUDE, por="text")
         time.sleep(4)
 
-        wait.until(EC.presence_of_element_located((By.ID, "formModeloTabulador:localidades")))
+        espera.until(EC.presence_of_element_located((By.ID, "formModeloTabulador:localidades")))
         select_municipio = Select(driver.find_element(By.ID, "formModeloTabulador:localidades"))
 
         municipio_encontrado = False
@@ -212,22 +213,22 @@ def aplicar_filtros(driver, wait):
         driver.find_element(By.ID, "formModeloTabulador:add").click()
         time.sleep(3)
 
-        select_by_name(driver, "formModeloTabulador:j_idt155", TIPO_LINHA_ID)
+        selecionar_por_nome(driver, "formModeloTabulador:j_idt155", TIPO_LINHA_ID)
         time.sleep(1)
         aguardar_ajax(driver)
         time.sleep(2)
 
-        select_by_id(driver, "formModeloTabulador:opcaoColuna", TIPO_COLUNA_ID)
-        aguardar_ajax(driver, timeout=15)
+        selecionar_por_id(driver, "formModeloTabulador:opcaoColuna", TIPO_COLUNA_ID)
+        aguardar_ajax(driver, tempo_limite=15)
         time.sleep(3)
 
         try:
-            select_by_id(driver, "formModeloTabulador:idadeFaixaIni", FAIXA_ETARIA_INICIAL)
+            selecionar_por_id(driver, "formModeloTabulador:idadeFaixaIni", FAIXA_ETARIA_INICIAL)
         except Exception:
             pass
 
         try:
-            select_by_id(driver, "formModeloTabulador:idadeFaixaFim", FAIXA_ETARIA_FINAL)
+            selecionar_por_id(driver, "formModeloTabulador:idadeFaixaFim", FAIXA_ETARIA_FINAL)
         except Exception:
             pass
 
@@ -238,15 +239,13 @@ def aplicar_filtros(driver, wait):
         print("=" * 80)
         return True
 
-    except Exception as e:
-        print(f"\n[ERRO] Falha ao aplicar filtros: {e}")
+    except Exception as erro:
+        print(f"\n[ERRO] Falha ao aplicar filtros: {erro}")
         return False
 
-# ________________________________________________________________________________
-# Extração: Processamento e Download
+# Processamento e download
 
-
-def clicar_ok_com_retry(driver, wait, max_tentativas=5):
+def clicar_ok_com_retry(driver, espera, max_tentativas=5):
     estrategias = [
         lambda: driver.find_element(
             By.XPATH,
@@ -267,17 +266,17 @@ def clicar_ok_com_retry(driver, wait, max_tentativas=5):
     ]
 
     for tentativa in range(max_tentativas):
-        for i, estrategia in enumerate(estrategias):
+        for estrategia in estrategias:
             try:
-                btn = estrategia()
+                botao = estrategia()
                 driver.execute_script(
-                    "arguments[0].scrollIntoView({behavior:'smooth',block:'center'});", btn
+                    "arguments[0].scrollIntoView({behavior:'smooth',block:'center'});", botao
                 )
                 time.sleep(0.5)
                 try:
-                    btn.click()
+                    botao.click()
                 except ElementClickInterceptedException:
-                    driver.execute_script("arguments[0].click();", btn)
+                    driver.execute_script("arguments[0].click();", botao)
                 return True
             except Exception:
                 continue
@@ -287,7 +286,7 @@ def clicar_ok_com_retry(driver, wait, max_tentativas=5):
 
     return False
 
-def clicar_gerar_csv_com_retry(driver, wait, max_tentativas=5):
+def clicar_gerar_csv_com_retry(driver, espera, max_tentativas=5):
     estrategias = [
         lambda: driver.find_element(By.ID, "formModeloTabuladorLinks:j_idt424"),
         lambda: driver.find_element(
@@ -306,17 +305,17 @@ def clicar_gerar_csv_com_retry(driver, wait, max_tentativas=5):
     ]
 
     for tentativa in range(max_tentativas):
-        for i, estrategia in enumerate(estrategias):
+        for estrategia in estrategias:
             try:
-                btn = estrategia()
+                botao = estrategia()
                 driver.execute_script(
-                    "arguments[0].scrollIntoView({behavior:'smooth',block:'center'});", btn
+                    "arguments[0].scrollIntoView({behavior:'smooth',block:'center'});", botao
                 )
                 time.sleep(0.5)
                 try:
-                    btn.click()
+                    botao.click()
                 except ElementClickInterceptedException:
-                    driver.execute_script("arguments[0].click();", btn)
+                    driver.execute_script("arguments[0].click();", botao)
                 return True
             except Exception:
                 continue
@@ -326,13 +325,11 @@ def clicar_gerar_csv_com_retry(driver, wait, max_tentativas=5):
 
     return False
 
-# ________________________________________________________________________________
-# Operações Principais
-
+# Execução principal
 
 def executar():
     driver = iniciar_driver()
-    wait = WebDriverWait(driver, 60)
+    espera = WebDriverWait(driver, 60)
     driver.get(URL)
 
     print("\033[1;36m" + "=" * 80)
@@ -341,7 +338,7 @@ def executar():
     print(f"TOTAL DE ANOS: {len(PERIODO)}".center(80))
     print("=" * 80 + "\033[0m")
 
-    if not aplicar_filtros(driver, wait):
+    if not aplicar_filtros(driver, espera):
         driver.quit()
         return
 
@@ -361,10 +358,10 @@ def executar():
                 except Exception:
                     pass
                 driver = iniciar_driver()
-                wait = WebDriverWait(driver, 60)
+                espera = WebDriverWait(driver, 60)
                 driver.get(URL)
                 time.sleep(3)
-                if not aplicar_filtros(driver, wait):
+                if not aplicar_filtros(driver, espera):
                     print("\n[ERRO] Falha ao reconfigurar filtros. Encerrando...")
                     return
                 tentativas_erro = 0
@@ -373,7 +370,7 @@ def executar():
             limpar_downloads_temp()
             log_status(ano, "Selecionando período", "INFO")
 
-            wait.until(
+            espera.until(
                 EC.presence_of_element_located((By.ID, "formModeloTabulador:anoInicio"))
             )
             Select(
@@ -385,7 +382,7 @@ def executar():
             time.sleep(1)
 
             log_status(ano, "Processando consulta...", "INFO")
-            if not clicar_ok_com_retry(driver, wait):
+            if not clicar_ok_com_retry(driver, espera):
                 raise Exception("Falha ao clicar no botão OK após múltiplas tentativas")
 
             aguardar_resultado_ou_erro(driver)
@@ -394,7 +391,7 @@ def executar():
                 log_status(ano, "Erro de campos obrigatórios! Reconfigurando...", "ERRO")
                 driver.refresh()
                 time.sleep(3)
-                if not aplicar_filtros(driver, wait):
+                if not aplicar_filtros(driver, espera):
                     print("\n[ERRO] Falha ao reconfigurar filtros. Encerrando...")
                     driver.quit()
                     return
@@ -403,7 +400,7 @@ def executar():
 
             if verificar_sem_resultado(driver):
                 log_status(ano, "Sem dados (1ª verificação). Tentando novamente...", "AVISO")
-                if not clicar_ok_com_retry(driver, wait):
+                if not clicar_ok_com_retry(driver, espera):
                     raise Exception("Falha ao clicar no botão OK na 2ª tentativa")
                 aguardar_resultado_ou_erro(driver)
 
@@ -411,7 +408,7 @@ def executar():
                     log_status(ano, "Erro de campos obrigatórios! Reconfigurando...", "ERRO")
                     driver.refresh()
                     time.sleep(3)
-                    if not aplicar_filtros(driver, wait):
+                    if not aplicar_filtros(driver, espera):
                         print("\n[ERRO] Falha ao reconfigurar filtros. Encerrando...")
                         driver.quit()
                         return
@@ -426,14 +423,14 @@ def executar():
                     continue
 
             log_status(ano, "Gerando arquivo CSV...", "INFO")
-            if not clicar_gerar_csv_com_retry(driver, wait):
+            if not clicar_gerar_csv_com_retry(driver, espera):
                 raise Exception("Falha ao clicar no botão Gerar CSV após múltiplas tentativas")
 
             arquivo_encontrado = None
             for _ in range(40):
-                arquivos = glob.glob(os.path.join(DOWNLOADS_PATH, "ModeloTabulador_*.csv"))
+                arquivos = glob.glob(os.path.join(PASTA_DOWNLOADS, "ModeloTabulador_*.csv"))
                 if arquivos and not any(
-                    f.endswith(".crdownload") for f in os.listdir(DOWNLOADS_PATH)
+                    nome.endswith(".crdownload") for nome in os.listdir(PASTA_DOWNLOADS)
                 ):
                     arquivo_encontrado = max(arquivos, key=os.path.getmtime)
                     break
@@ -454,15 +451,15 @@ def executar():
                     log_status(ano, "Muitas falhas. Reconfigurando filtros...", "ERRO")
                     driver.refresh()
                     time.sleep(3)
-                    if not aplicar_filtros(driver, wait):
+                    if not aplicar_filtros(driver, espera):
                         print("\n[ERRO] Falha ao reconfigurar filtros. Encerrando...")
                         driver.quit()
                         return
                     tentativas_erro = 0
 
-        except Exception as e:
-            erro_msg = str(e)
-            log_status(ano, f"Erro: {erro_msg[:80]}", "ERRO")
+        except Exception as erro:
+            mensagem_erro = str(erro)
+            log_status(ano, f"Erro: {mensagem_erro[:80]}", "ERRO")
             tentativas_erro += 1
 
             if not driver_esta_ativo(driver):
@@ -473,10 +470,10 @@ def executar():
                     pass
                 time.sleep(3)
                 driver = iniciar_driver()
-                wait = WebDriverWait(driver, 60)
+                espera = WebDriverWait(driver, 60)
                 driver.get(URL)
                 time.sleep(3)
-                if not aplicar_filtros(driver, wait):
+                if not aplicar_filtros(driver, espera):
                     print("\n[ERRO] Falha ao reconfigurar filtros. Encerrando...")
                     return
                 tentativas_erro = 0
@@ -486,7 +483,7 @@ def executar():
                 log_status(ano, "Muitas falhas. Reconfigurando filtros...", "ERRO")
                 driver.refresh()
                 time.sleep(3)
-                if not aplicar_filtros(driver, wait):
+                if not aplicar_filtros(driver, espera):
                     print("\n[ERRO] Falha ao reconfigurar filtros. Encerrando...")
                     driver.quit()
                     return
@@ -509,7 +506,7 @@ def executar():
     print(f"  • Anos sem dados           : {len(anos_sem_dados)}")
 
     anos_faltantes = [
-        a for a in PERIODO if a not in anos_baixados and a not in anos_sem_dados
+        ano for ano in PERIODO if ano not in anos_baixados and ano not in anos_sem_dados
     ]
 
     if anos_baixados:

@@ -7,15 +7,26 @@ Projeto de Conclusão de Curso (Engenharia de Computação) que aplica a metodol
 
 ```
 tcc/
-├── Limpeza e Integração/                   # 1. Coleta dos dados brutos
-├── Seleção e Transformação/                # 2. Tratamento dos dados
-├── Mineração de Dados/                     # 3. Algoritmos de agrupamento (DBSCAN, KMeans)
-├── Avaliação e Apresentação/               # 4. Análise exploratória dos dados brutos e populacionais
-├── src/tcc/                                       # Pacote Python do projeto
-├── pyproject.toml                                 # Dependências e configuração
-├── uv.lock                                        # Lock de dependências
-└── .python-version                                # Versão do Python usada pelo uv
+├── Limpeza e Integração/                   # 1. Dados brutos (scripts de extração INCA/DATASUS, planilhas, IBGE)
+├── Seleção e Transformação/                # 2. Notebooks de tratamento, população (interpolação) e taxas por 100 mil hab.
+├── Mineração de Dados/                     # 3. KMeans sobre os pares (Regional de Saúde, Ano)
+│   └── KMEANS/
+├── Avaliação e Apresentação/               # 4. Gráficos, mapas e análise exploratória
+├── src/tcc/                                # Pacote Python do projeto
+├── README_DADOS.md                         # Mapeamento dos arquivos CSV/XLSX por etapa do KDD
+├── pyproject.toml                          # Dependências e configuração
+├── uv.lock                                 # Lock de dependências
+└── .python-version                         # Versão do Python usada pelo uv
 ```
+
+Os dados de cada etapa estão descritos em [README_DADOS.md](README_DADOS.md).
+
+## Fluxo
+
+1. **Limpeza e Integração**: cada pasta tem um `main.py` (Selenium) que baixa os CSV de casos (RHC/INCA), mamografias (SISCAN/DATASUS) e mortalidade (Mortalidade Web/INCA); hospitais habilitados, municípios e população (IBGE) ficam como planilhas e CSV.
+2. **Seleção e Transformação**: notebooks `*_tratamento.ipynb` geram uma tabela por variável; `interpolacao_extrapolacao.ipynb` estima a população de 1970 a 2025; `calculo_taxa.ipynb` calcula as taxas por Regional (módulo comum: `utilitarios_comuns.py`).
+3. **Mineração de Dados**: `kmeans.ipynb` agrupa as Regionais por ano, com `k` escolhido pelo cotovelo da inércia. PCA e silhueta estão implementados, mas desligados.
+4. **Avaliação e Apresentação**: notebooks de heatmap, mapas coropléticos e gráficos de linha, com funções em `utilitarios_graficos_populacionais.py` e estilo em `configuracao_layout_graficos.py`.
 
 ## Tecnologias
 
@@ -46,7 +57,6 @@ tcc/
 ### Mineração de dados
 
 ![Scikit-Learn](https://img.shields.io/badge/Scikit--Learn-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)
-![DBSCAN](https://img.shields.io/badge/DBSCAN-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![Kneed](https://img.shields.io/badge/Kneed-3776AB?style=for-the-badge&logo=python&logoColor=white)
 
 ### Extração de dados

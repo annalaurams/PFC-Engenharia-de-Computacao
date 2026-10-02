@@ -1,3 +1,5 @@
+# Extrai do TABNET/SISCAN os exames de mamografia (MG) por município e faixa etária, um CSV por ano.
+
 import argparse
 import os
 import shutil
@@ -6,30 +8,22 @@ from datetime import date
 from typing import List, Optional
 from urllib.parse import urljoin, urlparse
 
+import requests
 from selenium import webdriver
-from selenium.common.exceptions import (
-    ElementClickInterceptedException,
-    ElementNotInteractableException,
-    NoSuchElementException,
-    TimeoutException,
-)
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
 
-import requests
-
-
-# Extração: Configuração e variáveis
+# Configuração e filtros da consulta
 
 URL = "https://tabnet.datasus.gov.br/cgi/dhdat.exe?siscan/mamografia_atendmg.def"
 
-DEFAULT_DOWNLOAD_DIR = os.path.expanduser("~/Downloads")
-DEFAULT_OUTPUT_DIR = "/home/anna/tcc/Limpeza e Integração/Mamografia/Dados"
+PASTA_DOWNLOADS_PADRAO = os.path.expanduser("~/Downloads")
+PASTA_SAIDA_PADRAO = "/home/anna/tcc/Limpeza e Integração/Mamografia/Dados"
 
-# Filtros aplicados na consulta (TABNET/SISCAN):
 FILTRO_LINHA = "Munic.da un.saúde"
 FILTRO_COLUNA = "Faixa etária"
 FILTRO_CONTEUDO = "Exames"
@@ -37,49 +31,47 @@ FILTRO_SEXO = "Feminino"
 FILTRO_RACA_COR = "Todas as categorias"
 FILTRO_ESCOLARIDADE = "Todas as categorias"
 
-# 2012 = primeiro ano com série completa disponível no SISCAN para este tabulador
-ANO_INICIAL_SERIE = 2012
+ANO_INICIAL_SERIE = 2012  # primeiro ano com série completa no SISCAN para este tabulador
 ANOS_PADRAO = list(range(date.today().year - 1, ANO_INICIAL_SERIE, -1))
 
-# ________________________________________________________________________________
-# Extração: Funções auxiliares
 
-def _ensure_dir(path: str) -> None:
-    os.makedirs(path, exist_ok=True)
+# Funções auxiliares
+
+def garantir_pasta(caminho: str) -> None:
+    os.makedirs(caminho, exist_ok=True)
 
 
-def _build_driver(download_dir: str, headless: bool) -> webdriver.Chrome:
-    chrome_options = webdriver.ChromeOptions()
-    prefs = {
-        "download.default_directory": os.path.abspath(download_dir),
+def criar_driver(pasta_downloads: str, sem_interface: bool) -> webdriver.Chrome:
+    opcoes = webdriver.ChromeOptions()
+    preferencias = {
+        "download.default_directory": os.path.abspath(pasta_downloads),
         "download.prompt_for_download": False,
         "download.directory_upgrade": True,
         "safebrowsing.enabled": True,
     }
-    chrome_options.add_experimental_option("prefs", prefs)
-    chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--disable-dev-shm-usage")
+    opcoes.add_experimental_option("prefs", preferencias)
+    opcoes.add_argument("--no-sandbox")
+    opcoes.add_argument("--disable-dev-shm-usage")
 
-    if headless:
-        chrome_options.add_argument("--headless=new")
+    if sem_interface:
+        opcoes.add_argument("--headless=new")
 
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    servico = Service(ChromeDriverManager().install())
+    driver = webdriver.Chrome(service=servico, options=opcoes)
     driver.set_page_load_timeout(120)
 
     try:
         driver.execute_cdp_cmd(
             "Page.setDownloadBehavior",
-            {"behavior": "allow", "downloadPath": os.path.abspath(download_dir)},
+            {"behavior": "allow", "downloadPath": os.path.abspath(pasta_downloads)},
         )
     except Exception:
         pass
     return driver
 
 
-def _set_select_by_visible_text(driver: webdriver.Chrome, select_el, text: str) -> None:
-    # Executa código JavaScript no navegador para selecionar uma opção pelo texto visível
-    ok = driver.execute_script(
+def selecionar_opcao_por_texto(driver: webdriver.Chrome, elemento_select, texto: str) -> None:
+    encontrou = driver.execute_script(
         """
         const sel = arguments[0];
         const targetText = arguments[1];
@@ -106,61 +98,58 @@ def _set_select_by_visible_text(driver: webdriver.Chrome, select_el, text: str) 
         }
         return found;
         """,
-        select_el,
-        text,
+        elemento_select,
+        texto,
     )
-    if not ok:
-        raise NoSuchElementException(f"Opção '{text}' não encontrada no select")
+    if not encontrou:
+        raise NoSuchElementException(f"Opção '{texto}' não encontrada no select")
 
 
-def _safe_click(driver: webdriver.Chrome, el) -> None:
+def clicar_com_seguranca(driver: webdriver.Chrome, elemento) -> None:
     try:
-        el.click()
-    except (ElementClickInterceptedException, ElementNotInteractableException):
-        driver.execute_script("arguments[0].click();", el)
+        elemento.click()
     except Exception:
-        driver.execute_script("arguments[0].click();", el)
+        driver.execute_script("arguments[0].click();", elemento)
 
 
-def _scroll_to_bottom(driver: webdriver.Chrome, steps: int = 10, pause_s: float = 0.5) -> None:
-    for i in range(1, steps + 1):
+def rolar_ate_o_fim(driver: webdriver.Chrome, passos: int = 10, pausa_s: float = 0.5) -> None:
+    for passo in range(1, passos + 1):
         driver.execute_script(
-            f"window.scrollTo(0, document.body.scrollHeight * {i / steps});"
+            f"window.scrollTo(0, document.body.scrollHeight * {passo / passos});"
         )
-        time.sleep(pause_s)
+        time.sleep(pausa_s)
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     time.sleep(1)
 
 
-def _switch_to_result_window(driver: webdriver.Chrome, original_handle: str, timeout_s: int = 60) -> bool:
-    deadline = time.time() + timeout_s
-    while time.time() < deadline:
-        handles = driver.window_handles
-        new_handles = [h for h in handles if h != original_handle]
-        if new_handles:
-            driver.switch_to.window(new_handles[-1])
+def mudar_para_janela_de_resultado(driver: webdriver.Chrome, janela_original: str, tempo_limite_s: int = 60) -> bool:
+    limite = time.time() + tempo_limite_s
+    while time.time() < limite:
+        novas_janelas = [h for h in driver.window_handles if h != janela_original]
+        if novas_janelas:
+            driver.switch_to.window(novas_janelas[-1])
             return True
         time.sleep(0.5)
 
     return False
 
 
-def _find_csv_href(driver: webdriver.Chrome) -> str:
-    strategies = [
-        (By.XPATH,        "//a[normalize-space(text())='Salva como CSV']"),
-        (By.XPATH,        "//a[contains(text(),'CSV') and contains(@href,'.csv')]"),
+def encontrar_link_csv(driver: webdriver.Chrome) -> str:
+    estrategias = [
+        (By.XPATH, "//a[normalize-space(text())='Salva como CSV']"),
+        (By.XPATH, "//a[contains(text(),'CSV') and contains(@href,'.csv')]"),
         (By.CSS_SELECTOR, "table.escondido a[href$='.csv']"),
         (By.CSS_SELECTOR, "a[href*='csv/'][href$='.csv']"),
-        (By.XPATH,        "//a[contains(@href,'mamografia') and contains(@href,'.csv')]"),
-        (By.XPATH,        "//a[contains(@href,'.csv')]"),
+        (By.XPATH, "//a[contains(@href,'mamografia') and contains(@href,'.csv')]"),
+        (By.XPATH, "//a[contains(@href,'.csv')]"),
     ]
 
-    for by, selector in strategies:
+    for por, seletor in estrategias:
         try:
-            el = WebDriverWait(driver, 8).until(
-                EC.presence_of_element_located((by, selector))
+            elemento = WebDriverWait(driver, 8).until(
+                EC.presence_of_element_located((por, seletor))
             )
-            href = el.get_attribute("href")
+            href = elemento.get_attribute("href")
             if href:
                 return href
         except TimeoutException:
@@ -181,165 +170,159 @@ def _find_csv_href(driver: webdriver.Chrome) -> str:
     if href:
         return href
 
-    raise NoSuchElementException(
-        "Link 'Salva como CSV' não encontrado"
-    )
+    raise NoSuchElementException("Link 'Salva como CSV' não encontrado")
 
 
-def _download_with_requests(driver: webdriver.Chrome, url: str, dest_path: str) -> None:
-    _ensure_dir(os.path.dirname(dest_path))
+def baixar_com_requests(driver: webdriver.Chrome, url: str, caminho_destino: str) -> None:
+    garantir_pasta(os.path.dirname(caminho_destino))
 
-    session = requests.Session()
-    for c in driver.get_cookies():
-        session.cookies.set(c["name"], c["value"])
+    sessao = requests.Session()
+    for cookie in driver.get_cookies():
+        sessao.cookies.set(cookie["name"], cookie["value"])
 
     try:
         user_agent = driver.execute_script("return navigator.userAgent")
     except Exception:
         user_agent = "Mozilla/5.0"
 
-    headers = {
+    cabecalhos = {
         "User-Agent": user_agent,
         "Referer": driver.current_url,
     }
 
-    with session.get(url, headers=headers, stream=True, timeout=180) as resp:
-        resp.raise_for_status()
-        with open(dest_path, "wb") as f:
-            for chunk in resp.iter_content(chunk_size=64 * 1024):
-                if chunk:
-                    f.write(chunk)
+    with sessao.get(url, headers=cabecalhos, stream=True, timeout=180) as resposta:
+        resposta.raise_for_status()
+        with open(caminho_destino, "wb") as arquivo:
+            for bloco in resposta.iter_content(chunk_size=64 * 1024):
+                if bloco:
+                    arquivo.write(bloco)
 
 
-def _move_overwrite(src: str, dst: str) -> None:
-    _ensure_dir(os.path.dirname(dst))
-    if os.path.exists(dst):
-        os.remove(dst)
-    shutil.move(src, dst)
+def mover_sobrescrevendo(origem: str, destino: str) -> None:
+    garantir_pasta(os.path.dirname(destino))
+    if os.path.exists(destino):
+        os.remove(destino)
+    shutil.move(origem, destino)
 
 
 def baixar_csv_por_ano(
     driver: webdriver.Chrome,
     ano: int,
-    download_dir: str,
-    output_dir: str,
-    wait_s: int = 60,
+    pasta_downloads: str,
+    pasta_saida: str,
+    espera_s: int = 60,
 ) -> str:
     driver.get(URL)
-    wait = WebDriverWait(driver, wait_s)
+    espera = WebDriverWait(driver, espera_s)
 
-    original_handle = driver.current_window_handle
+    janela_original = driver.current_window_handle
 
-    # ________________________________________________________________________________
-    # Extração: Preenchimento dos filtros
-
-    _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "L"))), FILTRO_LINHA)
-    _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "C"))), FILTRO_COLUNA)
-    _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "I"))), FILTRO_CONTEUDO)
-    _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "A"))), str(ano))
+    # Preenchimento dos filtros
+    selecionar_opcao_por_texto(driver, espera.until(EC.presence_of_element_located((By.ID, "L"))), FILTRO_LINHA)
+    selecionar_opcao_por_texto(driver, espera.until(EC.presence_of_element_located((By.ID, "C"))), FILTRO_COLUNA)
+    selecionar_opcao_por_texto(driver, espera.until(EC.presence_of_element_located((By.ID, "I"))), FILTRO_CONTEUDO)
+    selecionar_opcao_por_texto(driver, espera.until(EC.presence_of_element_located((By.ID, "A"))), str(ano))
 
     try:
-        _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "S8"))), FILTRO_SEXO)
+        selecionar_opcao_por_texto(driver, espera.until(EC.presence_of_element_located((By.ID, "S8"))), FILTRO_SEXO)
     except (TimeoutException, NoSuchElementException):
         pass
 
     try:
-        _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "S1"))), FILTRO_RACA_COR)
+        selecionar_opcao_por_texto(driver, espera.until(EC.presence_of_element_located((By.ID, "S1"))), FILTRO_RACA_COR)
     except (TimeoutException, NoSuchElementException):
         pass
 
     try:
-        _set_select_by_visible_text(driver, wait.until(EC.presence_of_element_located((By.ID, "S7"))), FILTRO_ESCOLARIDADE)
+        selecionar_opcao_por_texto(driver, espera.until(EC.presence_of_element_located((By.ID, "S7"))), FILTRO_ESCOLARIDADE)
     except (TimeoutException, NoSuchElementException):
         pass
 
-    # ________________________________________________________________________________
-    # Extração: Execução e download
-
-    mostra_btn = wait.until(
+    # Execução da consulta e download do CSV
+    botao_mostra = espera.until(
         EC.element_to_be_clickable((By.CSS_SELECTOR, 'input[type="button"][value="Mostra"]'))
     )
-    _safe_click(driver, mostra_btn)
+    clicar_com_seguranca(driver, botao_mostra)
 
-    switched = _switch_to_result_window(driver, original_handle, timeout_s=60)
+    mudou_de_janela = mudar_para_janela_de_resultado(driver, janela_original, tempo_limite_s=60)
 
-    if not switched:
+    if not mudou_de_janela:
         time.sleep(5)
 
-    _scroll_to_bottom(driver, steps=10, pause_s=0.5)
+    rolar_ate_o_fim(driver, passos=10, pausa_s=0.5)
     time.sleep(2)
 
-    csv_href = _find_csv_href(driver)
-    csv_url = urljoin(driver.current_url, csv_href)
-    parsed = urlparse(csv_url)
-    if not parsed.scheme or not parsed.netloc:
-        raise ValueError(f"URL inválida: {csv_url}")
+    href_csv = encontrar_link_csv(driver)
+    url_csv = urljoin(driver.current_url, href_csv)
+    url_analisada = urlparse(url_csv)
+    if not url_analisada.scheme or not url_analisada.netloc:
+        raise ValueError(f"URL inválida: {url_csv}")
 
-    temp_name = os.path.basename(parsed.path)
-    temp_path = os.path.join(os.path.abspath(download_dir), temp_name)
-    _download_with_requests(driver, csv_url, temp_path)
+    nome_temporario = os.path.basename(url_analisada.path)
+    caminho_temporario = os.path.join(os.path.abspath(pasta_downloads), nome_temporario)
+    baixar_com_requests(driver, url_csv, caminho_temporario)
 
-    out_path = os.path.join(os.path.abspath(output_dir), f"mamografia_{ano}.csv")
-    _move_overwrite(temp_path, out_path)
+    caminho_saida = os.path.join(os.path.abspath(pasta_saida), f"mamografia_{ano}.csv")
+    mover_sobrescrevendo(caminho_temporario, caminho_saida)
 
-    if switched:
+    if mudou_de_janela:
         try:
             driver.close()
-            driver.switch_to.window(original_handle)
+            driver.switch_to.window(janela_original)
         except Exception:
             pass
 
-    return out_path
+    return caminho_saida
 
 
-def _parse_years(
-    args_years: Optional[List[int]],
-    start_year: Optional[int],
-    end_year: Optional[int],
+def definir_anos(
+    anos_informados: Optional[List[int]],
+    ano_inicial: Optional[int],
+    ano_final: Optional[int],
 ) -> List[int]:
-    if args_years:
-        return [int(y) for y in args_years]
-    if start_year is None and end_year is None:
+    if anos_informados:
+        return [int(ano) for ano in anos_informados]
+    if ano_inicial is None and ano_final is None:
         return ANOS_PADRAO
-    if start_year is None or end_year is None:
+    if ano_inicial is None or ano_final is None:
         raise ValueError("Use ambos --start-year e --end-year, ou apenas --years.")
-    step = -1 if int(start_year) >= int(end_year) else 1
-    return list(range(int(start_year), int(end_year) + step, step))
+    passo = -1 if int(ano_inicial) >= int(ano_final) else 1
+    return list(range(int(ano_inicial), int(ano_final) + passo, passo))
 
-# ________________________________________________________________________________
-# Extração: Operações principais
+
+# Execução principal
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
+    analisador = argparse.ArgumentParser(
         description="Baixa CSV do TABNET (SISCAN Mamografia) por ano."
     )
-    parser.add_argument("--years",        nargs="+", type=int)
-    parser.add_argument("--start-year",   type=int)
-    parser.add_argument("--end-year",     type=int)
-    parser.add_argument("--download-dir", default=DEFAULT_DOWNLOAD_DIR)
-    parser.add_argument("--output-dir",   default=DEFAULT_OUTPUT_DIR)
-    parser.add_argument("--headless",     action="store_true")
-    parser.add_argument("--wait",         type=int, default=60)
-    args = parser.parse_args()
+    analisador.add_argument("--years", nargs="+", type=int)
+    analisador.add_argument("--start-year", type=int)
+    analisador.add_argument("--end-year", type=int)
+    analisador.add_argument("--download-dir", default=PASTA_DOWNLOADS_PADRAO)
+    analisador.add_argument("--output-dir", default=PASTA_SAIDA_PADRAO)
+    analisador.add_argument("--headless", action="store_true")
+    analisador.add_argument("--wait", type=int, default=60)
+    argumentos = analisador.parse_args()
 
-    years = _parse_years(args.years, args.start_year, args.end_year)
-    _ensure_dir(args.download_dir)
-    _ensure_dir(args.output_dir)
+    anos = definir_anos(argumentos.years, argumentos.start_year, argumentos.end_year)
+    garantir_pasta(argumentos.download_dir)
+    garantir_pasta(argumentos.output_dir)
 
-    driver = _build_driver(download_dir=args.download_dir, headless=args.headless)
-    errors = []
+    driver = criar_driver(pasta_downloads=argumentos.download_dir, sem_interface=argumentos.headless)
+    erros = []
     try:
-        for year in years:
+        for ano in anos:
             try:
                 baixar_csv_por_ano(
                     driver=driver,
-                    ano=int(year),
-                    download_dir=args.download_dir,
-                    output_dir=args.output_dir,
-                    wait_s=int(args.wait),
+                    ano=int(ano),
+                    pasta_downloads=argumentos.download_dir,
+                    pasta_saida=argumentos.output_dir,
+                    espera_s=int(argumentos.wait),
                 )
-            except Exception as e:
-                errors.append((year, str(e)))
+            except Exception as erro:
+                erros.append((ano, str(erro)))
                 try:
                     driver.switch_to.window(driver.window_handles[0])
                 except Exception:
@@ -347,10 +330,10 @@ def main() -> int:
     finally:
         driver.quit()
 
-    if errors:
+    if erros:
         print("\nAnos com erro:")
-        for year, msg in errors:
-            print(f"  {year}: {msg}")
+        for ano, mensagem in erros:
+            print(f"  {ano}: {mensagem}")
         return 1
 
     return 0
