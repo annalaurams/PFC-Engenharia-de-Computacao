@@ -1,8 +1,8 @@
-# Dados do Câncer de Mama em Minas Gerais por Regional de Saúde
+# Base de Dados do Câncer de Mama
 
-Este repositório disponibiliza, para consulta pública, os dados usados no Projeto Final de Curso (PFC) de Engenharia de Computação sobre o câncer de mama em Minas Gerais, organizados por Regional de Saúde.
+Este repositório disponibiliza, para consulta pública, os dados usados no Projeto Final de Curso (PFC) de Engenharia de Computação sobre o câncer de mama em Minas Gerais, organizados por Município e Regional de Saúde.
 
-Esta branch guarda **somente os dados**: os arquivos como foram extraídos das fontes públicas e as tabelas já tratadas a partir deles. O código e as análises não estão aqui.
+Esta branch guarda **somente os dados**: os arquivos como foram extraídos das fontes públicas e as tabelas já tratadas a partir deles. 
 
 ## Estrutura das pastas
 
@@ -18,7 +18,7 @@ Esta branch guarda **somente os dados**: os arquivos como foram extraídos das f
     │   └── População - Faixa Etária/
     └── Dados estruturados/      # tabelas únicas por variável, já tratadas
         ├── Tratados/            # dados brutos unificados, por município
-        ├── Interpolados/        # população por faixa etária de 1970 a 2025
+        ├── Interpolados/        # população estimada por faixa etária de 1970 a 2025
         └── Taxas/               # valores e taxas por 100 mil habitantes, por Regional
 ```
 
@@ -29,6 +29,3 @@ Esta branch guarda **somente os dados**: os arquivos como foram extraídos das f
 
 A descrição geral dos dados, as fontes e as convenções de colunas estão em [Dados/README.md](Dados/README.md).
 
-## Autoria
-
-Anna Laura Moura Santana, Engenharia de Computação.
