@@ -102,6 +102,7 @@ K_MAXIMO = 12  # teto da varredura de k
 SENSIBILIDADE_COTOVELO = 1.0  # parâmetro S do KneeLocator
 SEMENTES_DA_BUSCA = [0, 10, 30, 42, 66]  # sementes para testar a sensibilidade à inicialização
 NUMERO_DE_INICIALIZACOES = 10  # n_init do KMeans
+MAXIMO_DE_ITERACOES = 30  # max_iter do KMeans; nenhuma execução observada passou de 29
 
 # Tamanho mínimo de cluster abaixo do qual se emite um aviso
 MINIMO_DE_ELEMENTOS_POR_CLUSTER = 4
@@ -276,7 +277,8 @@ def pesos_das_variaveis_no_componente(pca, colunas, componente=1):
 
 
 def calcular_inercia_e_silhueta_por_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXIMO,
-                                       semente=SEMENTE_ALEATORIA, n_init=NUMERO_DE_INICIALIZACOES):
+                                       semente=SEMENTE_ALEATORIA, n_init=NUMERO_DE_INICIALIZACOES,
+                                       max_iter=MAXIMO_DE_ITERACOES):
     """Calcula inércia (WCSS) e silhueta do KMeans para cada k da faixa."""
     limite_superior = min(k_maximo, len(matriz) - 1)
     if k_minimo > limite_superior:
@@ -287,7 +289,7 @@ def calcular_inercia_e_silhueta_por_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXI
         )
     linhas = []
     for k in range(k_minimo, limite_superior + 1):
-        modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init).fit(matriz)
+        modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init, max_iter=max_iter).fit(matriz)
         rotulos = modelo.labels_
         silhueta = np.nan
         if CALCULAR_SILHUETA and k >= 2 and len(matriz) > k:
@@ -332,7 +334,7 @@ def escolher_k_pelo_cotovelo(tabela_k, sensibilidade=SENSIBILIDADE_COTOVELO):
 
 
 def busca_em_grade_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXIMO, sementes=SEMENTES_DA_BUSCA,
-                      n_init=NUMERO_DE_INICIALIZACOES):
+                      n_init=NUMERO_DE_INICIALIZACOES, max_iter=MAXIMO_DE_ITERACOES):
     """Calcula inércia e silhueta para cada combinação (k, semente)."""
     limite_superior = min(k_maximo, len(matriz) - 1)
     if k_minimo > limite_superior:
@@ -346,7 +348,7 @@ def busca_em_grade_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXIMO, sementes=SEME
     linhas = []
     for combinacao in grade:
         k, semente = combinacao["k"], combinacao["semente"]
-        modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init).fit(matriz)
+        modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init, max_iter=max_iter).fit(matriz)
         rotulos = modelo.labels_
         silhueta = np.nan
         if CALCULAR_SILHUETA and k >= 2 and len(matriz) > k:
@@ -370,9 +372,10 @@ def maximo_de_iteracoes_usadas(*tabelas):
 # Execução do KMeans
 
 
-def executar_kmeans(matriz, k, semente=SEMENTE_ALEATORIA, n_init=NUMERO_DE_INICIALIZACOES):
+def executar_kmeans(matriz, k, semente=SEMENTE_ALEATORIA, n_init=NUMERO_DE_INICIALIZACOES,
+                     max_iter=MAXIMO_DE_ITERACOES):
     """Roda o KMeans e devolve os rótulos numerados a partir de 1 (Cluster 1..k) e o modelo."""
-    modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init).fit(matriz)
+    modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init, max_iter=max_iter).fit(matriz)
     return modelo.labels_ + 1, modelo
 
 

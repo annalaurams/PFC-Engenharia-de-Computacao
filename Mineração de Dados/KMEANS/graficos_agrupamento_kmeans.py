@@ -16,14 +16,14 @@ from utilitarios_comuns import PASTA_SELECAO_TRANSFORMACAO, registrar_log  # noq
 
 # Paleta dos clusters, na ordem Cluster 1, Cluster 2, ...
 PALETA = [
-    "#E78284",
-    "#AE82B4",
-    "#6A9769",
-    "#A1CCEF",
-    "#FFEA98",
-    "#F781BF",
-    "#A65628",
-    "#FF7F00",
+    "#264653",
+    
+    "#E15759",
+    "#2A9D8F",
+    "#59A14F",
+    "#E9C46A",
+    "#E76F51",
+
 ]
 COR_SEM_DADO = "#E3E3E3"
 COR_PRINCIPAL = "#2E5C8A"

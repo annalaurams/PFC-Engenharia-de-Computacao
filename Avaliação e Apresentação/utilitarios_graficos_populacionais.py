@@ -753,7 +753,11 @@ def adicionar_rotulos_regionais(figura, centroides_lon, centroides_lat, nomes,
                                 tamanho_fonte_rotulo=11, cor_texto="#1a1a1a", cor_contorno="white",
                                 espessura_contorno=2, negrito=True,
                                 deslocamento_lat=0.0, quebrar_linha=True):
-    """Escreve o nome de cada Regional sobre o mapa, no centroide, com contorno opcional."""
+    """Escreve o nome de cada Regional sobre o mapa, no centroide, com contorno opcional.
+
+    `tamanho_fonte_rotulo` aceita tanto um número único quanto uma lista/array com um
+    tamanho por rótulo (por exemplo, fonte menor nas Regionais menores, para reduzir sobreposição).
+    """
     e = espessura_contorno
     direcoes = ((-e, -e), (0, -e), (e, -e), (-e, 0), (e, 0), (-e, e), (0, e), (e, e))
     if cor_contorno is None:
@@ -774,10 +778,15 @@ def adicionar_rotulos_regionais(figura, centroides_lon, centroides_lat, nomes,
     peso_fonte = "normal"
     if negrito:
         peso_fonte = "bold"
+    tamanhos_fonte = tamanho_fonte_rotulo
+    if np.isscalar(tamanhos_fonte):
+        tamanhos_fonte = [tamanhos_fonte] * len(textos)
+    else:
+        tamanhos_fonte = list(tamanhos_fonte)
     figura.add_trace(go.Scattergeo(
         lon=np.asarray(centroides_lon), lat=np.asarray(centroides_lat) + deslocamento_lat,
         mode="text", text=textos, textposition="middle center",
-        textfont=dict(size=tamanho_fonte_rotulo, color=cor_texto, shadow=sombra_contorno, weight=peso_fonte),
+        textfont=dict(size=tamanhos_fonte, color=cor_texto, shadow=sombra_contorno, weight=peso_fonte),
         showlegend=False, hoverinfo="skip",
     ))
     return figura
@@ -786,17 +795,29 @@ def adicionar_rotulos_regionais(figura, centroides_lon, centroides_lat, nomes,
 def montar_mapa_referencia_regionais(geojson, geometria_regionais, coluna_id_geojson,
                                      coluna_regional_exibicao, titulo,
                                      cor_preenchimento="#AEB9C7", cor_nome="#0b1772",
+                                     cor_linha_contorno="white",
+                                     cor_linha_contorno_externa=None, espessura_linha_contorno_externa=2.5,
                                      largura=1500, altura=1050,
                                      espessura_linha_contorno=1.6, tamanho_fonte_nome=15,
-                                     tamanho_fonte_titulo=None):
-    """Mapa de referência sem dados: todas as Regionais com a mesma cor e o nome escrito sobre cada uma."""
+                                     tamanho_fonte_nome_minimo=None,
+                                     tamanho_fonte_titulo=None, fundo_transparente=False):
+    """Mapa de referência sem dados: todas as Regionais com a mesma cor e o nome escrito sobre cada uma.
+
+    `cor_linha_contorno_externa`, se informada, desenha o contorno do estado (união de todas as
+    Regionais) numa cor/espessura separada das divisas internas, já que `marker_line_*` do
+    Choropleth não distingue divisa externa de interna.
+
+    `tamanho_fonte_nome_minimo`, se informado, faz a fonte do nome variar entre ele e
+    `tamanho_fonte_nome` conforme a área de cada Regional (menor Regional -> fonte menor),
+    para reduzir sobreposição de rótulos em regiões com Regionais pequenas e próximas.
+    """
     if tamanho_fonte_titulo is None:
         tamanho_fonte_titulo = TAMANHO_FONTE_TITULO
     figura = go.Figure(go.Choropleth(
         geojson=geojson, locations=geometria_regionais[coluna_id_geojson], z=[0] * len(geometria_regionais),
         featureidkey=f"properties.{coluna_id_geojson}",
         colorscale=[[0, cor_preenchimento], [1, cor_preenchimento]], showscale=False, zmin=0, zmax=1,
-        marker_line_width=espessura_linha_contorno, marker_line_color=cor_nome,
+        marker_line_width=espessura_linha_contorno, marker_line_color=cor_linha_contorno,
         customdata=geometria_regionais[coluna_regional_exibicao],
         hovertemplate="%{customdata}<extra></extra>",
     ))
@@ -806,9 +827,43 @@ def montar_mapa_referencia_regionais(geojson, geometria_regionais, coluna_id_geo
         width=largura, height=altura, template="plotly_white",
         margin=dict(l=40, r=40, t=90, b=40),
     )
+    if fundo_transparente:
+        figura.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+        figura.update_geos(bgcolor="rgba(0,0,0,0)")
+
+    if cor_linha_contorno_externa is not None:
+        from shapely.ops import unary_union
+
+        # Buffer positivo antes do union fecha pequenas falhas de topologia entre Regionais vizinhas
+        # (senão o union gera lascas/vãos minúsculos, que aparecem como um contorno irregular e
+        # pontilhado por cima de todo o mapa); o buffer negativo devolve o traçado ao tamanho original.
+        folga_graus = 0.01
+        contorno_estado = unary_union([geom.buffer(folga_graus) for geom in geometria_regionais.geometry])
+        contorno_estado = contorno_estado.buffer(-folga_graus)
+        poligonos = getattr(contorno_estado, "geoms", [contorno_estado])
+        for poligono in poligonos:
+            aneis = [poligono.exterior, *poligono.interiors]
+            for anel in aneis:
+                lon_anel, lat_anel = anel.xy
+                figura.add_trace(go.Scattergeo(
+                    lon=list(lon_anel), lat=list(lat_anel), mode="lines",
+                    line=dict(color=cor_linha_contorno_externa, width=espessura_linha_contorno_externa),
+                    showlegend=False, hoverinfo="skip",
+                ))
+
+    tamanho_fonte_rotulo = tamanho_fonte_nome
+    if tamanho_fonte_nome_minimo is not None:
+        raiz_area = np.sqrt(geometria_regionais.geometry.area.to_numpy())
+        area_min, area_max = raiz_area.min(), raiz_area.max()
+        if area_max > area_min:
+            proporcao = (raiz_area - area_min) / (area_max - area_min)
+        else:
+            proporcao = np.ones_like(raiz_area)
+        tamanho_fonte_rotulo = tamanho_fonte_nome_minimo + proporcao * (tamanho_fonte_nome - tamanho_fonte_nome_minimo)
+
     adicionar_rotulos_regionais(
         figura, centroides_lon=geometria_regionais["_LON"], centroides_lat=geometria_regionais["_LAT"],
-        nomes=geometria_regionais[coluna_regional_exibicao], tamanho_fonte_rotulo=tamanho_fonte_nome,
+        nomes=geometria_regionais[coluna_regional_exibicao], tamanho_fonte_rotulo=tamanho_fonte_rotulo,
         cor_texto=cor_nome, cor_contorno=None,
     )
     return figura
