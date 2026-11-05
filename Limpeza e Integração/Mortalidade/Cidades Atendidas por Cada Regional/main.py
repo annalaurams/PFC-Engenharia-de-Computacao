@@ -123,6 +123,7 @@ def aguardar_ajax(driver, tempo_limite=10):
     except Exception:
         pass
 
+
 def aguardar_resultado_ou_erro(driver, tempo_limite=40):
     def condicao(d):
         try:
@@ -285,6 +286,7 @@ def clicar_ok_com_retry(driver, espera, max_tentativas=5):
             time.sleep(3)
 
     return False
+
 
 def clicar_gerar_csv_com_retry(driver, espera, max_tentativas=5):
     estrategias = [

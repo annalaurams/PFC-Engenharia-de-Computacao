@@ -19,6 +19,11 @@ POPULACAO_MINIMA_VALIDA = 1
 # Faixas etárias decenais comuns às bases de eventos e à de população.
 FAIXAS_ETARIAS_PADRAO = ("0-9", "10-19", "20-29", "30-39", "40-49", "50-59", "60-69", "70 OU MAIS")
 
+# Anos com dado censitário/estimativa oficial do IBGE usados como base da
+# interpolação/extrapolação geométrica (ver interpolacao_extrapolacao.ipynb);
+# os anos fora desta lista, dentro do período 1970-2025, são estimados.
+ANOS_CENSITARIOS_POPULACAO = (1970, 1980, 1991, 2000, 2010, 2022)
+
 PASTA_POPULACAO = Path(__file__).resolve().parent
 PASTA_SELECAO_TRANSFORMACAO = PASTA_POPULACAO.parent
 

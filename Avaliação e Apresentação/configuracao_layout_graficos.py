@@ -59,6 +59,23 @@ TAMANHO_FONTE_TITULO_EIXO_GRAFICO_LINHA = 19
 TAMANHO_FONTE_TICK_EIXO_GRAFICO_LINHA = 15
 TAMANHO_FONTE_LEGENDA_GRAFICO_LINHA = 20  # o ícone da legenda escala com a fonte
 
+# Gráfico de linha de população interpolada/extrapolada, com destaque para anos censitários
+
+COR_LINHA_POPULACAO_TOTAL = "#377EB8"
+
+TAMANHO_MARCADOR_CENSITARIO_POPULACAO = 13
+TAMANHO_MARCADOR_ESTIMADO_POPULACAO = 6
+OPACIDADE_MARCADOR_ESTIMADO_POPULACAO = 0.55
+
+# Destaque visual (linha vertical) dos anos censitários, nos painéis de população
+COR_LINHA_DESTAQUE_ANO_CENSITARIO = "#999999"
+LARGURA_LINHA_DESTAQUE_ANO_CENSITARIO = 1
+OPACIDADE_LINHA_DESTAQUE_ANO_CENSITARIO = 0.6
+
+# Painéis A/B de população (população total + por faixa etária) na mesma figura
+TAMANHO_FONTE_TITULO_PAINEL_POPULACAO = TAMANHO_FONTE_TITULO_EIXO_GRAFICO_LINHA + 1
+ESPACAMENTO_VERTICAL_PAINEIS_POPULACAO = 0.16
+
 
 def tamanho_fonte(tamanho_base):
     return tamanho_base * MULTIPLICADOR_FONTE_GLOBAL

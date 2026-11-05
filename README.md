@@ -12,7 +12,6 @@ tcc/
 ├── Mineração de Dados/                     # 3. KMeans sobre os pares (Regional de Saúde, Ano)
 │   └── KMEANS/
 ├── Avaliação e Apresentação/               # 4. Gráficos, mapas e análise exploratória
-├── src/tcc/                                # Pacote Python do projeto
 ├── README_DADOS.md                         # Mapeamento dos arquivos CSV/XLSX por etapa do KDD
 ├── pyproject.toml                          # Dependências e configuração
 ├── uv.lock                                 # Lock de dependências

@@ -8,6 +8,7 @@ from utilitarios_comuns import (
     COLUNA_REGIONAL,
     PASTA_SELECAO_TRANSFORMACAO,
     SUFIXO_COLUNA_TAXA,
+    SUFIXO_COLUNA_TOTAL,
     extrair_ano_da_coluna,
     registrar_log,
 )
@@ -36,6 +37,15 @@ from configuracao_layout_graficos import (
     POSICOES_ROTULO_LINHA_CATEGORICA,
     LIMIAR_ROTULO_LINHA_CATEGORICA,
     LARGURA_MINIMA_POR_ANO_LINHA_CATEGORICA,
+    COR_LINHA_POPULACAO_TOTAL,
+    TAMANHO_MARCADOR_CENSITARIO_POPULACAO,
+    TAMANHO_MARCADOR_ESTIMADO_POPULACAO,
+    OPACIDADE_MARCADOR_ESTIMADO_POPULACAO,
+    COR_LINHA_DESTAQUE_ANO_CENSITARIO,
+    LARGURA_LINHA_DESTAQUE_ANO_CENSITARIO,
+    OPACIDADE_LINHA_DESTAQUE_ANO_CENSITARIO,
+    TAMANHO_FONTE_TITULO_PAINEL_POPULACAO,
+    ESPACAMENTO_VERTICAL_PAINEIS_POPULACAO,
     tamanho_fonte,
 )
 
@@ -416,6 +426,400 @@ def montar_grafico_linha_categorica_absoluto(eixo_x, tabela_pivotada_quantidade,
             orientation="h", yanchor="top", y=legenda_y, xanchor="center", x=0.5,
             font=dict(size=tamanho_fonte(tamanho_fonte_legenda)),
         ),
+    )
+    return figura
+
+
+# Espaço estimado, em px, ocupado pelo ícone + espaçamento de cada item da legenda horizontal
+_LARGURA_ICONE_E_ESPACO_ITEM_LEGENDA = 60
+
+
+def _largura_minima_para_legenda_em_uma_linha(rotulos_legenda, tamanho_fonte_legenda):
+    """Estima a largura, em px, necessária para todos os itens da legenda caberem numa única linha."""
+    largura_total = 0.0
+    for rotulo in rotulos_legenda:
+        largura_texto = len(rotulo) * tamanho_fonte_legenda * _LARGURA_MEDIA_CARACTERE_EM_FONTE
+        largura_total += _LARGURA_ICONE_E_ESPACO_ITEM_LEGENDA + largura_texto
+    return largura_total
+
+
+def agregar_populacao_estadual_por_ano(tabela_populacao, faixas_etarias, anos):
+    """Soma a população (TOTAL e cada faixa etária) de todos os municípios de MG, por ano.
+
+    Devolve a série do TOTAL (índice = ano) e a tabela por faixa etária
+    (índice = ano, uma coluna por faixa), ambas somando `tabela_populacao`
+    (uma linha por município) ao longo de todas as linhas.
+    """
+    serie_total = pd.Series(
+        {ano: tabela_populacao[f"{ano}{SUFIXO_COLUNA_TOTAL}"].sum() for ano in anos},
+        name="TOTAL",
+    )
+    serie_total.index.name = "ANO"
+
+    tabela_por_faixa = pd.DataFrame(
+        {faixa: {ano: tabela_populacao[f"{ano}_{faixa}"].sum() for ano in anos} for faixa in faixas_etarias},
+        index=anos,
+    )
+    tabela_por_faixa.index.name = "ANO"
+
+    return serie_total, tabela_por_faixa
+
+
+def _tamanhos_e_opacidades_censitario(anos, anos_censitarios_set, tamanho_marcador_censitario,
+                                       tamanho_marcador_estimado, opacidade_marcador_estimado):
+    """Marcador maior e opaco nos anos censitários (dado real do IBGE); menor e translúcido nos demais."""
+    tamanhos = []
+    opacidades = []
+    for ano in anos:
+        if ano in anos_censitarios_set:
+            tamanhos.append(tamanho_marcador_censitario)
+            opacidades.append(1.0)
+        else:
+            tamanhos.append(tamanho_marcador_estimado)
+            opacidades.append(opacidade_marcador_estimado)
+    return tamanhos, opacidades
+
+
+def _tickvals_e_texto_com_destaque_censitario(anos, anos_censitarios):
+    """Eixo X dividido pelos anos censitários (dado real do IBGE), em negrito -- sem grade regular.
+
+    Antes a grade regular (a cada `dtick` anos, contada a partir do ano
+    inicial) podia deixar um ano censitário de fora e sem rótulo escrito.
+    Agora o eixo só é dividido pelos anos censitários, que são o dado
+    prioritário do gráfico.
+    """
+    anos_set = set(anos)
+    anos_censitarios_set = set(anos_censitarios) & anos_set
+    tickvals = sorted(anos_censitarios_set)
+    ticktext = [f"<b>{v}</b>" for v in tickvals]
+    return tickvals, ticktext
+
+
+def montar_grafico_linha_populacao_com_destaque_censitario(
+        series_por_categoria, anos_censitarios, titulo, titulo_eixo_x, titulo_eixo_y,
+        largura, altura, paleta_cores=None, marcadores_categorias=None, ordem_categorias=None,
+        tickangle_eixo_x=-45, dtick_eixo_y=None,
+        tamanho_marcador_censitario=TAMANHO_MARCADOR_CENSITARIO_POPULACAO,
+        tamanho_marcador_estimado=TAMANHO_MARCADOR_ESTIMADO_POPULACAO,
+        opacidade_marcador_estimado=OPACIDADE_MARCADOR_ESTIMADO_POPULACAO,
+        tamanho_fonte_titulo=TAMANHO_FONTE_TITULO_GRAFICO_LINHA,
+        tamanho_fonte_titulo_eixo=TAMANHO_FONTE_TITULO_EIXO_GRAFICO_LINHA,
+        tamanho_fonte_tick_eixo=TAMANHO_FONTE_TICK_EIXO_GRAFICO_LINHA,
+        tamanho_fonte_legenda=TAMANHO_FONTE_LEGENDA_GRAFICO_LINHA):
+    """Gráfico de linha (uma linha por chave de `series_por_categoria`), com um ponto por ano.
+
+    Mesmos marcadores do gráfico de linha categórico de Casos (cor da
+    `PALETA_CATEGORIAS_FORTE` + símbolo de `MARCADORES_CATEGORIAS`, um por
+    categoria). Os anos em `anos_censitarios` (dado real do IBGE) recebem
+    marcador maior e opaco; os demais anos (interpolados/extrapolados)
+    recebem marcador menor e translúcido -- a linha em si é contínua, só o
+    marcador muda, já que a série completa (real + estimada) é uma única
+    sequência sem corte.
+    """
+    if ordem_categorias is None:
+        ordem_categorias = list(series_por_categoria.keys())
+    if paleta_cores is None:
+        if len(ordem_categorias) == 1:
+            paleta_cores = {ordem_categorias[0]: COR_LINHA_POPULACAO_TOTAL}
+        else:
+            paleta_cores = gerar_paleta_categorica_forte(ordem_categorias)
+    if marcadores_categorias is None:
+        marcadores_categorias = gerar_marcadores_categoria(ordem_categorias)
+
+    rotulos_legenda = [str(categoria).title() for categoria in ordem_categorias]
+    rotulos_legenda += ["Ano censitário (IBGE)", "Estimado (interpolação/extrapolação)"]
+    largura = max(largura, _largura_minima_para_legenda_em_uma_linha(
+        rotulos_legenda, tamanho_fonte(tamanho_fonte_legenda),
+    ))
+
+    anos_censitarios_set = set(anos_censitarios)
+
+    figura = go.Figure()
+    for categoria in ordem_categorias:
+        valores = series_por_categoria[categoria]
+        cor = paleta_cores[categoria]
+        simbolo = marcadores_categorias[categoria]
+        anos = list(valores.index)
+
+        tamanhos, opacidades = _tamanhos_e_opacidades_censitario(
+            anos, anos_censitarios_set, tamanho_marcador_censitario,
+            tamanho_marcador_estimado, opacidade_marcador_estimado,
+        )
+
+        figura.add_trace(go.Scatter(
+            x=anos, y=valores.values, name=str(categoria).title(), mode="lines+markers",
+            line=dict(color=cor, width=2),
+            marker=dict(
+                color=cor, size=tamanhos, opacity=opacidades, symbol=simbolo,
+                line=dict(color=COR_BORDA_MARCADOR_LINHA_CATEGORICA, width=LARGURA_BORDA_MARCADOR_LINHA_CATEGORICA),
+            ),
+            hovertemplate=(
+                f"{str(categoria).title()}<br>Ano: %{{x}}<br>População: %{{y:,.0f}}<extra></extra>"
+            ),
+        ))
+
+    # Traces "fantasma" (sem dado) só para a legenda explicar o que o tamanho do marcador significa
+    figura.add_trace(go.Scatter(
+        x=[None], y=[None], mode="markers",
+        marker=dict(
+            color="#555555", size=tamanho_marcador_censitario, symbol="circle",
+            line=dict(color=COR_BORDA_MARCADOR_LINHA_CATEGORICA, width=LARGURA_BORDA_MARCADOR_LINHA_CATEGORICA),
+        ),
+        name="Ano censitário (IBGE)", showlegend=True,
+    ))
+    figura.add_trace(go.Scatter(
+        x=[None], y=[None], mode="markers",
+        marker=dict(
+            color="#555555", size=tamanho_marcador_estimado, opacity=opacidade_marcador_estimado, symbol="circle",
+            line=dict(color=COR_BORDA_MARCADOR_LINHA_CATEGORICA, width=LARGURA_BORDA_MARCADOR_LINHA_CATEGORICA),
+        ),
+        name="Estimado (interpolação/extrapolação)", showlegend=True,
+    ))
+
+    todos_os_anos = list(anos_censitarios_set | set(valores.index))
+    tickvals, ticktext = _tickvals_e_texto_com_destaque_censitario(
+        todos_os_anos, anos_censitarios_set,
+    )
+
+    margem_inferior, legenda_y = _calcular_margem_inferior_e_legenda(
+        todos_os_anos, tickangle_eixo_x, altura,
+        tamanho_fonte_tick_eixo=tamanho_fonte_tick_eixo, tamanho_fonte_titulo_eixo=tamanho_fonte_titulo_eixo,
+    )
+
+    for ano in anos_censitarios_set:
+        figura.add_vline(
+            x=ano, line_width=LARGURA_LINHA_DESTAQUE_ANO_CENSITARIO, line_dash="dot",
+            line_color=COR_LINHA_DESTAQUE_ANO_CENSITARIO, opacity=OPACIDADE_LINHA_DESTAQUE_ANO_CENSITARIO,
+            layer="below",
+        )
+
+    figura.update_layout(
+        title=dict(text=titulo, font=dict(size=tamanho_fonte(tamanho_fonte_titulo))),
+        template="plotly_white", width=largura, height=altura,
+        margin=dict(l=70, r=60, t=100, b=margem_inferior),
+        xaxis=dict(
+            title=dict(text=titulo_eixo_x, font=dict(size=tamanho_fonte(tamanho_fonte_titulo_eixo))),
+            tickfont=dict(size=tamanho_fonte(tamanho_fonte_tick_eixo)),
+            tickmode="array", tickvals=tickvals, ticktext=ticktext,
+            tickangle=tickangle_eixo_x,
+        ),
+        yaxis=dict(
+            title=dict(text=titulo_eixo_y, font=dict(size=tamanho_fonte(tamanho_fonte_titulo_eixo))),
+            tickfont=dict(size=tamanho_fonte(tamanho_fonte_tick_eixo)),
+            dtick=dtick_eixo_y,
+        ),
+        legend=dict(
+            orientation="h", yanchor="top", y=legenda_y, xanchor="center", x=0.5,
+            font=dict(size=tamanho_fonte(tamanho_fonte_legenda)),
+        ),
+    )
+    return figura
+
+
+def montar_paineis_populacao_total_e_por_faixa(
+        serie_total, tabela_por_faixa, anos_censitarios,
+        titulo_eixo_x, titulo_eixo_y,
+        largura, altura,
+        ordem_categorias=None, paleta_cores=None, marcadores_categorias=None,
+        titulo_painel_a="A) Evolução da população feminina estimada de MG (1970–2025)",
+        titulo_painel_b="B) Evolução da população de MG por faixa etária (1970–2025)",
+        tickangle_eixo_x=0, dtick_eixo_y=None,
+        tamanho_marcador_censitario=TAMANHO_MARCADOR_CENSITARIO_POPULACAO,
+        tamanho_marcador_estimado=TAMANHO_MARCADOR_ESTIMADO_POPULACAO,
+        opacidade_marcador_estimado=OPACIDADE_MARCADOR_ESTIMADO_POPULACAO,
+        tamanho_fonte_titulo_painel=TAMANHO_FONTE_TITULO_PAINEL_POPULACAO,
+        tamanho_fonte_titulo_eixo=TAMANHO_FONTE_TITULO_EIXO_GRAFICO_LINHA,
+        tamanho_fonte_tick_eixo=TAMANHO_FONTE_TICK_EIXO_GRAFICO_LINHA,
+        tamanho_fonte_legenda=TAMANHO_FONTE_LEGENDA_GRAFICO_LINHA,
+        espacamento_vertical=ESPACAMENTO_VERTICAL_PAINEIS_POPULACAO):
+    """Painel A (população total) empilhado sobre o painel B (uma linha por faixa etária), numa só figura.
+
+    Os dois gráficos de `montar_grafico_linha_populacao_com_destaque_censitario`
+    (população total e população por faixa etária) viram os painéis A e B de
+    uma única imagem, com fonte, altura e espaçamento padronizados entre eles
+    e eixo X compartilhado. Os anos censitários (dado real do IBGE) recebem
+    marcador maior/opaco, rótulo em negrito e uma linha vertical pontilhada
+    atravessando os dois painéis -- são o dado prioritário do gráfico.
+    """
+    if ordem_categorias is None:
+        ordem_categorias = list(tabela_por_faixa.columns)
+    if paleta_cores is None:
+        paleta_cores = gerar_paleta_categorica_forte(ordem_categorias)
+    if marcadores_categorias is None:
+        marcadores_categorias = gerar_marcadores_categoria(ordem_categorias)
+
+    anos_censitarios_set = set(anos_censitarios)
+
+    figura = make_subplots(
+        rows=2, cols=1, shared_xaxes=True, vertical_spacing=espacamento_vertical,
+        subplot_titles=(titulo_painel_a, titulo_painel_b),
+    )
+
+    # Painel A -- população total (uma única linha)
+    anos_total = list(serie_total.index)
+    tamanhos_total, opacidades_total = _tamanhos_e_opacidades_censitario(
+        anos_total, anos_censitarios_set, tamanho_marcador_censitario,
+        tamanho_marcador_estimado, opacidade_marcador_estimado,
+    )
+    figura.add_trace(go.Scatter(
+        x=anos_total, y=serie_total.values, name="População Total", mode="lines+markers",
+        line=dict(color=COR_LINHA_POPULACAO_TOTAL, width=2),
+        marker=dict(
+            color=COR_LINHA_POPULACAO_TOTAL, size=tamanhos_total, opacity=opacidades_total, symbol="circle",
+            line=dict(color=COR_BORDA_MARCADOR_LINHA_CATEGORICA, width=LARGURA_BORDA_MARCADOR_LINHA_CATEGORICA),
+        ),
+        hovertemplate="População Total<br>Ano: %{x}<br>População: %{y:,.0f}<extra></extra>",
+        showlegend=False,
+    ), row=1, col=1)
+
+    # Painel B -- uma linha por faixa etária
+    for categoria in ordem_categorias:
+        valores = tabela_por_faixa[categoria]
+        anos = list(valores.index)
+        tamanhos, opacidades = _tamanhos_e_opacidades_censitario(
+            anos, anos_censitarios_set, tamanho_marcador_censitario,
+            tamanho_marcador_estimado, opacidade_marcador_estimado,
+        )
+        figura.add_trace(go.Scatter(
+            x=anos, y=valores.values, name=str(categoria).title(), mode="lines+markers",
+            line=dict(color=paleta_cores[categoria], width=2),
+            marker=dict(
+                color=paleta_cores[categoria], size=tamanhos, opacity=opacidades,
+                symbol=marcadores_categorias[categoria],
+                line=dict(color=COR_BORDA_MARCADOR_LINHA_CATEGORICA, width=LARGURA_BORDA_MARCADOR_LINHA_CATEGORICA),
+            ),
+            hovertemplate=f"{str(categoria).title()}<br>Ano: %{{x}}<br>População: %{{y:,.0f}}<extra></extra>",
+        ), row=2, col=1)
+
+    # Traces "fantasma" (sem dado) só para a legenda explicar o tamanho/opacidade do marcador, uma vez só
+    # -- "legend2", numa linha própria abaixo da legenda das faixas etárias
+    figura.add_trace(go.Scatter(
+        x=[None], y=[None], mode="markers",
+        marker=dict(
+            color="#555555", size=tamanho_marcador_censitario, symbol="circle",
+            line=dict(color=COR_BORDA_MARCADOR_LINHA_CATEGORICA, width=LARGURA_BORDA_MARCADOR_LINHA_CATEGORICA),
+        ),
+        name="Ano censitário (IBGE)", showlegend=True, legend="legend2",
+    ), row=2, col=1)
+    figura.add_trace(go.Scatter(
+        x=[None], y=[None], mode="markers",
+        marker=dict(
+            color="#555555", size=tamanho_marcador_estimado, opacity=opacidade_marcador_estimado, symbol="circle",
+            line=dict(color=COR_BORDA_MARCADOR_LINHA_CATEGORICA, width=LARGURA_BORDA_MARCADOR_LINHA_CATEGORICA),
+        ),
+        name="Estimado (interpolação/extrapolação)", showlegend=True, legend="legend2",
+    ), row=2, col=1)
+
+    # Linha vertical pontilhada nos anos censitários, atravessando os dois painéis
+    for ano in anos_censitarios_set:
+        figura.add_vline(
+            x=ano, line_width=LARGURA_LINHA_DESTAQUE_ANO_CENSITARIO, line_dash="dot",
+            line_color=COR_LINHA_DESTAQUE_ANO_CENSITARIO, opacity=OPACIDADE_LINHA_DESTAQUE_ANO_CENSITARIO,
+            layer="below", row="all", col=1,
+        )
+
+    todos_os_anos = sorted(set(anos_total) | set(tabela_por_faixa.index))
+    tickvals, ticktext = _tickvals_e_texto_com_destaque_censitario(
+        todos_os_anos, anos_censitarios_set,
+    )
+
+    # Números do eixo X na horizontal, visíveis nos dois painéis (não só no de baixo)
+    figura.update_xaxes(
+        tickmode="array", tickvals=tickvals, ticktext=ticktext, tickangle=tickangle_eixo_x,
+        tickfont=dict(size=tamanho_fonte(tamanho_fonte_tick_eixo)), showticklabels=True,
+    )
+    figura.update_xaxes(
+        title=dict(text=titulo_eixo_x, font=dict(size=tamanho_fonte(tamanho_fonte_titulo_eixo))),
+        row=2, col=1,
+    )
+    figura.update_yaxes(
+        title=dict(text=titulo_eixo_y, font=dict(size=tamanho_fonte(tamanho_fonte_titulo_eixo))),
+        tickfont=dict(size=tamanho_fonte(tamanho_fonte_tick_eixo)), dtick=dtick_eixo_y,
+    )
+
+    # Padroniza os títulos A)/B): mesma fonte, negrito, alinhados à esquerda do painel
+    for anotacao in figura.layout.annotations:
+        anotacao.update(
+            text=f"<b>{anotacao.text}</b>",
+            font=dict(size=tamanho_fonte(tamanho_fonte_titulo_painel)),
+            x=0, xanchor="left",
+        )
+
+    # Legenda das faixas etárias (uma linha só) e, abaixo dela, a legenda do marcador
+    # (ano censitário/estimado) -- "uma do lado da outra" dentro de cada linha, duas linhas no total
+    rotulos_legenda_categorias = [str(categoria).title() for categoria in ordem_categorias]
+    largura = max(largura, _largura_minima_para_legenda_em_uma_linha(
+        rotulos_legenda_categorias, tamanho_fonte(tamanho_fonte_legenda),
+    ))
+
+    margem_inferior, legenda_y = _calcular_margem_inferior_e_legenda(
+        todos_os_anos, tickangle_eixo_x, altura,
+        tamanho_fonte_tick_eixo=tamanho_fonte_tick_eixo, tamanho_fonte_titulo_eixo=tamanho_fonte_titulo_eixo,
+    )
+    altura_area_grafico = max(altura - _MARGEM_SUPERIOR_PADRAO - margem_inferior, 1)
+    legenda2_y = legenda_y - (_ALTURA_LINHA_LEGENDA + 6) / altura_area_grafico
+    margem_inferior += _ALTURA_LINHA_LEGENDA + 6
+
+    figura.update_layout(
+        template="plotly_white", width=largura, height=altura,
+        margin=dict(l=70, r=60, t=60, b=margem_inferior),
+        legend=dict(
+            orientation="h", yanchor="top", y=legenda_y, xanchor="center", x=0.5,
+            font=dict(size=tamanho_fonte(tamanho_fonte_legenda)),
+        ),
+        legend2=dict(
+            orientation="h", yanchor="top", y=legenda2_y, xanchor="center", x=0.5,
+            font=dict(size=tamanho_fonte(tamanho_fonte_legenda)),
+        ),
+    )
+    return figura
+
+
+def montar_grafico_barras_populacao_total(
+        serie_total, anos_censitarios, titulo, titulo_eixo_x, titulo_eixo_y,
+        largura, altura, cor_barra=COR_LINHA_POPULACAO_TOTAL,
+        tickangle_eixo_x=-45, dtick_eixo_y=None,
+        tamanho_fonte_titulo=TAMANHO_FONTE_TITULO_GRAFICO_LINHA,
+        tamanho_fonte_titulo_eixo=TAMANHO_FONTE_TITULO_EIXO_GRAFICO_LINHA,
+        tamanho_fonte_tick_eixo=TAMANHO_FONTE_TICK_EIXO_GRAFICO_LINHA):
+    """Barras verticais com a população total por ano (já somada de todos os municípios/faixas).
+
+    Mesma série de `montar_grafico_linha_populacao_com_destaque_censitario` (população total),
+    só com barras em vez de linha -- anos censitários (IBGE) ficam opacos, o resto (interpolado/
+    extrapolado) fica translúcido.
+    """
+    anos = list(serie_total.index)
+    anos_censitarios_set = set(anos_censitarios)
+    opacidades = [1.0 if ano in anos_censitarios_set else 0.55 for ano in anos]
+
+    figura = go.Figure(go.Bar(
+        x=anos, y=serie_total.values, marker=dict(color=cor_barra, opacity=opacidades),
+        hovertemplate="Ano: %{x}<br>População: %{y:,.0f}<extra></extra>",
+    ))
+
+    tickvals, ticktext = _tickvals_e_texto_com_destaque_censitario(anos, anos_censitarios_set)
+
+    margem_inferior, _ = _calcular_margem_inferior_e_legenda(
+        anos, tickangle_eixo_x, altura,
+        tamanho_fonte_tick_eixo=tamanho_fonte_tick_eixo, tamanho_fonte_titulo_eixo=tamanho_fonte_titulo_eixo,
+    )
+
+    figura.update_layout(
+        title=dict(text=titulo, font=dict(size=tamanho_fonte(tamanho_fonte_titulo))),
+        template="plotly_white", width=largura, height=altura,
+        margin=dict(l=70, r=60, t=100, b=margem_inferior),
+        xaxis=dict(
+            title=dict(text=titulo_eixo_x, font=dict(size=tamanho_fonte(tamanho_fonte_titulo_eixo))),
+            tickfont=dict(size=tamanho_fonte(tamanho_fonte_tick_eixo)),
+            tickmode="array", tickvals=tickvals, ticktext=ticktext,
+            tickangle=tickangle_eixo_x, type="category",
+        ),
+        yaxis=dict(
+            title=dict(text=titulo_eixo_y, font=dict(size=tamanho_fonte(tamanho_fonte_titulo_eixo))),
+            tickfont=dict(size=tamanho_fonte(tamanho_fonte_tick_eixo)),
+            dtick=dtick_eixo_y,
+        ),
+        bargap=0.15,
     )
     return figura
 

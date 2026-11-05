@@ -8,8 +8,7 @@ Mineração de Dados/
 │   ├── kmeans.ipynb                              # KMeans sobre o painel (Regional, Ano)
 │   ├── utilitarios_agrupamento_kmeans.py         # painel, pré-processamento, escolha de k, caracterização
 │   ├── graficos_agrupamento_kmeans.py            # gráficos dos agrupamentos
-│   ├── KMEANS.md                                 # detalhes da implementação
-│   └── RELATORIO_METODOLOGIA_KMEANS.md           # metodologia completa
+│   └── KMEANS.md                                 # detalhes da implementação
 │
 └── README.md
 ```
