@@ -25,13 +25,13 @@ NO_DATA_COLOR = "#E5E5E5"
 # Tipografia e tamanhos padrão dos gráficos
 FONTE = "Arial, Helvetica, sans-serif"
 COR_TEXTO = "#2B2B2B"
-TAMANHO_TITULO = 22
-TAMANHO_TITULO_EIXO = 16
-TAMANHO_TICK = 14
-TAMANHO_LEGENDA = 16
+TAMANHO_TITULO = 26
+TAMANHO_TITULO_EIXO = 23
+TAMANHO_TICK = 19
+TAMANHO_LEGENDA = 23
 
-# O botão de download do gráfico exporta PNG em 3x a resolução de tela
-CONFIG_PLOTLY = {"displaylogo": False, "toImageButtonOptions": {"format": "png", "scale": 3}}
+# O botão de download do gráfico exporta PNG em 6x a resolução de tela
+CONFIG_PLOTLY = {"displaylogo": False, "toImageButtonOptions": {"format": "png", "scale": 6}}
 for _nome in list(pio.renderers):
     if hasattr(pio.renderers[_nome], "config"):
         pio.renderers[_nome].config = dict(CONFIG_PLOTLY)
@@ -70,12 +70,12 @@ def aplicar_layout_padrao(figura, titulo, largura, altura, **layout):
     figura.update_xaxes(
         showline=True, linecolor="#555555", ticks="outside", tickcolor="#555555",
         gridcolor="#EBEBEB", zeroline=False, title_font=dict(size=TAMANHO_TITULO_EIXO),
-        tickfont=dict(size=TAMANHO_TICK),
+        tickfont=dict(size=TAMANHO_TICK), automargin=True,
     )
     figura.update_yaxes(
         showline=True, linecolor="#555555", ticks="outside", tickcolor="#555555",
         gridcolor="#EBEBEB", zeroline=False, title_font=dict(size=TAMANHO_TITULO_EIXO),
-        tickfont=dict(size=TAMANHO_TICK),
+        tickfont=dict(size=TAMANHO_TICK), automargin=True,
     )
     figura.update_annotations(font=dict(size=TAMANHO_TITULO_EIXO, color=COR_TEXTO))
     if layout:
@@ -102,7 +102,7 @@ def _grafico_por_k(tabela_k, coluna, nome, k_escolhido, titulo):
     return aplicar_layout_padrao(
         figura, titulo, 1100, 580,
         xaxis=dict(title="Número de clusters (k)", dtick=1), yaxis_title=nome,
-        legend=LEGENDA_HORIZONTAL_TOPO, margin=dict(t=110),
+        legend=LEGENDA_HORIZONTAL_TOPO, margin=dict(t=70, l=20, r=20, b=20),
     )
 
 
@@ -165,9 +165,11 @@ def grafico_heatmap_regional_ano(visao_agregada_regional_ano):
     aplicar_layout_padrao(
         figura, "", 1150, max(560, 30 * len(tabela.index) + 180),
         legend={**LEGENDA_HORIZONTAL_TOPO, "title_text": "", "itemsizing": "constant", "y": 1.01},
-        margin=dict(l=190, t=120, r=30),
+        margin=dict(l=20, t=70, r=20, b=20),
     )
-    figura.update_xaxes(title_text="Ano", type="category", showgrid=False, showline=False, ticks="")
+    figura.update_xaxes(
+        title_text="Ano", type="category", showgrid=False, showline=False, ticks="", automargin=True,
+    )
     figura.update_yaxes(
         title_text="Regional de Saúde", automargin=True, autorange="reversed", type="category", categoryorder="array",
         categoryarray=list(tabela.index), showgrid=False, showline=False, ticks="",
@@ -225,7 +227,7 @@ def grafico_mapa_clusters(geojson_regionais, geometria_regionais, tabela_cluster
             orientation="h", yanchor="top", y=-0.03, xanchor="center", x=0.5,
             title_text="", itemsizing="constant",
         ),
-        margin=dict(l=20, r=20, t=20, b=90),
+        margin=dict(l=20, r=20, t=20, b=70),
     )
     return figura
 
@@ -237,7 +239,7 @@ def _chave_alfabetica(nome):
 
 
 def grafico_heatmap_caracterizacao(caracterizacao_por_mediana):
-    """Heatmap único variável x cluster (todas as variáveis), colorido por d_cj (RdBu_r, centrado em 0); NaN em cinza, sem número."""
+    """Heatmap único variável x cluster (todas as variáveis), colorido por d_cv (RdBu_r, centrado em 0); NaN em cinza, sem número."""
     maximo_absoluto_por_variavel = (
         caracterizacao_por_mediana.groupby("VARIAVEL")["D_CJ"].apply(lambda serie: serie.abs().max())
     )
@@ -262,16 +264,21 @@ def grafico_heatmap_caracterizacao(caracterizacao_por_mediana):
     ))
     figura.add_trace(go.Heatmap(
         z=z, x=x, y=y, text=texto, texttemplate="%{text}",
+        textfont=dict(size=TAMANHO_TICK),
         colorscale="RdBu_r", zmid=0, zmin=-limite_escala, zmax=limite_escala,
-        hovertemplate="<b>%{y} — %{x}</b><br>d_cj: %{z:.2f}<extra></extra>",
-        colorbar=dict(title="d_cj"), xgap=2, ygap=2,
+        hovertemplate="<b>%{y} — %{x}</b><br>d_cv: %{z:.2f}<extra></extra>",
+        colorbar=dict(
+            title=dict(text="d_cv", font=dict(size=TAMANHO_LEGENDA)),
+            tickfont=dict(size=TAMANHO_TICK), thickness=22,
+        ),
+        xgap=2, ygap=2,
     ))
 
     aplicar_layout_padrao(
         figura, "", 1150, max(560, 30 * len(y) + 180),
-        margin=dict(l=320, t=120, r=30),
+        margin=dict(l=20, t=40, r=20, b=20),
     )
-    figura.update_xaxes(type="category", showgrid=False, showline=False, ticks="")
+    figura.update_xaxes(type="category", showgrid=False, showline=False, ticks="", automargin=True)
     figura.update_yaxes(
         automargin=True, autorange="reversed", type="category", categoryorder="array",
         categoryarray=y, showgrid=False, showline=False, ticks="",
@@ -287,6 +294,7 @@ def grafico_cluster_por_ano(tabela_cluster_por_ano):
 
     figura = go.Figure(go.Heatmap(
         z=z, x=anos, y=rotulos_y, text=z, texttemplate="%{text}",
+        textfont=dict(size=TAMANHO_TICK),
         colorscale="Blues", xgap=2, ygap=2, showscale=False,
         hovertemplate="<b>%{y} — %{x}</b><br>%{z} par(es)<extra></extra>",
     ))
@@ -294,4 +302,5 @@ def grafico_cluster_por_ano(tabela_cluster_por_ano):
         figura, "Cluster por ano -- contagem de pares Regional-Ano",
         900, max(300, 60 * len(rotulos_y)),
         xaxis_title="Ano", yaxis_title="Cluster",
+        margin=dict(l=20, r=20, t=60, b=20),
     )

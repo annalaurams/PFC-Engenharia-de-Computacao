@@ -734,7 +734,7 @@ def montar_paineis_populacao_total_e_por_faixa(
     )
     figura.update_yaxes(
         title=dict(text=titulo_eixo_y, font=dict(size=tamanho_fonte(tamanho_fonte_titulo_eixo))),
-        tickfont=dict(size=tamanho_fonte(tamanho_fonte_tick_eixo)), dtick=dtick_eixo_y,
+        tickfont=dict(size=tamanho_fonte(tamanho_fonte_tick_eixo)), dtick=dtick_eixo_y, automargin=True,
     )
 
     # Padroniza os títulos A)/B): mesma fonte, negrito, alinhados à esquerda do painel
@@ -762,7 +762,7 @@ def montar_paineis_populacao_total_e_por_faixa(
 
     figura.update_layout(
         template="plotly_white", width=largura, height=altura,
-        margin=dict(l=70, r=60, t=60, b=margem_inferior),
+        margin=dict(l=15, r=10, t=_MARGEM_SUPERIOR_PADRAO, b=margem_inferior),
         legend=dict(
             orientation="h", yanchor="top", y=legenda_y, xanchor="center", x=0.5,
             font=dict(size=tamanho_fonte(tamanho_fonte_legenda)),
@@ -807,17 +807,17 @@ def montar_grafico_barras_populacao_total(
     figura.update_layout(
         title=dict(text=titulo, font=dict(size=tamanho_fonte(tamanho_fonte_titulo))),
         template="plotly_white", width=largura, height=altura,
-        margin=dict(l=70, r=60, t=100, b=margem_inferior),
+        margin=dict(l=15, r=10, t=65, b=margem_inferior),
         xaxis=dict(
             title=dict(text=titulo_eixo_x, font=dict(size=tamanho_fonte(tamanho_fonte_titulo_eixo))),
             tickfont=dict(size=tamanho_fonte(tamanho_fonte_tick_eixo)),
             tickmode="array", tickvals=tickvals, ticktext=ticktext,
-            tickangle=tickangle_eixo_x, type="category",
+            tickangle=tickangle_eixo_x, type="category", automargin=True,
         ),
         yaxis=dict(
             title=dict(text=titulo_eixo_y, font=dict(size=tamanho_fonte(tamanho_fonte_titulo_eixo))),
             tickfont=dict(size=tamanho_fonte(tamanho_fonte_tick_eixo)),
-            dtick=dtick_eixo_y,
+            dtick=dtick_eixo_y, automargin=True,
         ),
         bargap=0.15,
     )
@@ -946,12 +946,14 @@ def montar_par_heatmaps_regional_ano(tabela_pivotada_quantidade, tabela_pivotada
                                           family=FONTE_FAMILIA_HEATMAP)),
         tickfont=dict(size=tamanho_fonte_tick_eixo, color=COR_TEXTO_HEATMAP, family=FONTE_FAMILIA_HEATMAP),
         showline=True, linewidth=1, linecolor="#D9D9D9", ticks="outside", tickcolor="#D9D9D9",
+        automargin=True,
     )
     figura.update_yaxes(
         title=dict(text=COLUNA_REGIONAL.title(), font=dict(size=tamanho_fonte_titulo_eixo, color=COR_TEXTO_HEATMAP,
                                                              family=FONTE_FAMILIA_HEATMAP)),
         tickfont=dict(size=tamanho_fonte_tick_eixo, color=COR_TEXTO_HEATMAP, family=FONTE_FAMILIA_HEATMAP),
         showline=True, linewidth=1, linecolor="#D9D9D9", ticks="outside", tickcolor="#D9D9D9",
+        automargin=True,
     )
 
     # Títulos dos subplots em negrito e com a fonte da figura
@@ -1225,11 +1227,12 @@ def montar_mapa_referencia_regionais(geojson, geometria_regionais, coluna_id_geo
         customdata=geometria_regionais[coluna_regional_exibicao],
         hovertemplate="%{customdata}<extra></extra>",
     ))
+    margem_superior = 90 if titulo else 20
     figura.update_geos(fitbounds="locations", visible=False)
     figura.update_layout(
         title=dict(text=titulo, font=dict(size=tamanho_fonte(tamanho_fonte_titulo)), x=0.5, xanchor="center"),
         width=largura, height=altura, template="plotly_white",
-        margin=dict(l=40, r=40, t=90, b=40),
+        margin=dict(l=40, r=40, t=margem_superior, b=40),
     )
     if fundo_transparente:
         figura.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
@@ -1365,7 +1368,7 @@ def salvar_figura(figura, nome_do_arquivo, pasta_saida):
     caminho_png = pasta_saida / f"{nome_do_arquivo}.png"
     caminho_svg = pasta_saida / f"{nome_do_arquivo}.svg"
     caminho_html = pasta_saida / f"{nome_do_arquivo}.html"
-    figura.write_image(caminho_png, scale=5)
+    figura.write_image(caminho_png, scale=6)
     figura.write_image(caminho_svg)
     figura.write_html(caminho_html)
     registrar_log(f"Figura PNG salva em : {caminho_png}")
