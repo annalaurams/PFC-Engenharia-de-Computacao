@@ -130,6 +130,8 @@ def ler_csv_taxa_em_painel(caminho_csv, prefixo):
             f"Nenhuma coluna de taxa ('{SUFIXO_COLUNA_TAXA}') em {Path(caminho_csv).name}."
         )
 
+    # Derrete o formato largo (uma coluna por ANO_CATEGORIA) para o formato longo,
+    # para então separar ANO e CATEGORIA, que vêm concatenados no nome da coluna original
     longa = tabela.melt(
         id_vars=[COLUNA_REGIONAL], value_vars=colunas_de_taxa,
         var_name="ANO_CATEGORIA", value_name="TAXA",
@@ -138,10 +140,12 @@ def ler_csv_taxa_em_painel(caminho_csv, prefixo):
     longa[COLUNA_ANO] = partes[0].astype(int)
     longa["CATEGORIA"] = partes[1].str[: -len(SUFIXO_COLUNA_TAXA)]
 
+    # Pivota de volta: cada categoria se torna uma coluna, indexada por (REGIONAL, ANO)
     painel = longa.pivot_table(
         index=[COLUNA_REGIONAL, COLUNA_ANO], columns="CATEGORIA",
         values="TAXA", aggfunc="first", dropna=False,
     )
+    # Prefixa cada coluna (ex.: "casos-faixa_") para não colidir com categorias de outros blocos
     painel.columns = [f"{prefixo}_{_slug(categoria)}" for categoria in painel.columns]
 
     registrar_log(
@@ -225,9 +229,12 @@ def padronizar_e_reduzir(matriz, razao_maxima_atributos_por_linha=RAZAO_MAXIMA_A
                           numero_maximo_de_componentes=NUMERO_MAXIMO_DE_COMPONENTES,
                           semente=SEMENTE_ALEATORIA_FIXA, usar_pca=USAR_PCA):
     """Padroniza com RobustScaler e aplica PCA conforme `usar_pca`."""
+    # RobustScaler usa mediana/IQR (em vez de média/desvio) -- menos sensível a outliers
     matriz_padronizada = RobustScaler().fit_transform(matriz)
     razao = matriz.shape[1] / matriz.shape[0]
 
+    # Decide se aplica PCA: automático (quando há muito mais atributos que linhas, risco de
+    # "maldição da dimensionalidade") ou forçado via USAR_PCA
     if usar_pca is None:
         aplicar_pca = razao > razao_maxima_atributos_por_linha
         motivo_pulado = f"razão atributos/linhas = {razao:.3f} (<= {razao_maxima_atributos_por_linha})"
@@ -239,13 +246,17 @@ def padronizar_e_reduzir(matriz, razao_maxima_atributos_por_linha=RAZAO_MAXIMA_A
         registrar_log(f"PCA não aplicado: {motivo_pulado}.")
         return matriz_padronizada, matriz_padronizada, None, None
 
+    # Primeiro PCA exploratório (todos os componentes) só para medir quanta variância cada
+    # componente explica, e assim decidir quantos componentes realmente usar
     pca_exploratorio = PCA(random_state=semente).fit(matriz_padronizada)
     variancia_acumulada = np.cumsum(pca_exploratorio.explained_variance_ratio_)
+    # Nº mínimo de componentes para atingir `variancia_alvo` (ex.: 85%), limitado por um teto
     componentes_pelo_alvo = int(np.searchsorted(variancia_acumulada, variancia_alvo) + 1)
     numero_de_componentes = max(
         2, min(componentes_pelo_alvo, numero_maximo_de_componentes, matriz_padronizada.shape[1])
     )
 
+    # PCA final, já com o número de componentes decidido acima
     pca = PCA(n_components=numero_de_componentes, random_state=semente)
     matriz_reduzida = pca.fit_transform(matriz_padronizada)
 
@@ -274,6 +285,8 @@ def calcular_inercia_por_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXIMO,
             f"(len(matriz)-1={len(matriz) - 1}). A amostra tem poucas linhas demais para a "
             "faixa de k configurada -- reduza K_MINIMO ou aumente o tamanho da amostra."
         )
+    # Treina um KMeans para cada k da faixa e guarda a inércia (WCSS: soma das distâncias
+    # quadradas de cada ponto ao centróide do seu cluster) -- quanto maior k, menor a inércia
     linhas = []
     for k in range(k_minimo, limite_superior + 1):
         modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init, max_iter=max_iter).fit(matriz)
@@ -292,12 +305,16 @@ def calcular_inercia_por_k(matriz, k_minimo=K_MINIMO, k_maximo=K_MAXIMO,
 
 def escolher_k_pelo_cotovelo(tabela_k, sensibilidade=SENSIBILIDADE_COTOVELO):
     """Escolhe k pelo cotovelo da curva de inércia (KneeLocator)."""
+    # KneeLocator procura o ponto de maior curvatura na curva k x inércia (o "cotovelo"):
+    # convexa e decrescente, como é o formato típico da curva de inércia do KMeans
     localizador = KneeLocator(
         tabela_k["k"].to_numpy(), tabela_k["inercia"].to_numpy(),
         S=sensibilidade, curve="convex", direction="decreasing",
     )
     k_escolhido = localizador.knee
     if k_escolhido is None:
+        # Reserva: quando o KneeLocator não acha cotovelo, aproxima a curvatura pela segunda
+        # derivada discreta e escolhe o k onde ela é máxima
         registrar_log(
             "ATENÇÃO: kneed não encontrou cotovelo na curva de inércia -- usando o k de maior "
             "curvatura discreta (segunda derivada) como reserva."
@@ -349,7 +366,10 @@ def maximo_de_iteracoes_usadas(*tabelas):
 def executar_kmeans(matriz, k, semente=SEMENTE_ALEATORIA_FIXA, n_init=NUMERO_DE_INICIALIZACOES,
                      max_iter=MAXIMO_DE_ITERACOES):
     """Roda o KMeans e devolve os rótulos numerados a partir de 1 (Cluster 1..k) e o modelo."""
+    # n_init: nº de inicializações com centróides diferentes, mantém a de menor inércia
+    # (reduz a chance de ficar presa num mínimo local ruim)
     modelo = KMeans(n_clusters=k, random_state=semente, n_init=n_init, max_iter=max_iter).fit(matriz)
+    # sklearn rotula clusters a partir de 0; soma 1 só para exibição (Cluster 1, 2, ...)
     return modelo.labels_ + 1, modelo
 
 
@@ -449,8 +469,12 @@ def selecionar_variaveis_mais_discriminantes(tabela_caracterizacao, top_n=NUMERO
 
 def calcular_caracterizacao_por_mediana(matriz, rotulos):
     """d_cj = (Med_cj − Med_j) / IQR_j por (cluster, variável), nos valores originais."""
+    # d_cj mede, em unidades de IQR, o quanto a mediana de uma variável dentro do cluster se
+    # desvia da mediana geral da variável -- é o que torna cada cluster interpretável
+    # (ex.: "d_cj = +1.5" => cluster bem acima do estado nessa variável)
     colunas = matriz.columns.tolist()
     mediana_geral = matriz.median()
+    # Zera IQR=0 (sem variabilidade) para não dividir por zero; vira NaN e fica sem d_cj
     iqr_geral = (matriz.quantile(0.75) - matriz.quantile(0.25)).where(lambda serie: serie > 0)
 
     tabela_pertencimento = montar_tabela_pertencimento(matriz.index, rotulos)
@@ -458,12 +482,15 @@ def calcular_caracterizacao_por_mediana(matriz, rotulos):
     matriz_com_cluster["CLUSTER"] = tabela_pertencimento["CLUSTER"].to_numpy()
     mediana_por_cluster = matriz_com_cluster.groupby("CLUSTER")[colunas].median()
 
+    # "Empilha" a tabela (cluster x variável) em formato longo, uma linha por (cluster, variável)
     tabela = mediana_por_cluster.stack().rename("MEDIANA_CLUSTER").reset_index()
     tabela.columns = ["CLUSTER", "VARIAVEL", "MEDIANA_CLUSTER"]
     tabela["MEDIANA_GERAL"] = tabela["VARIAVEL"].map(mediana_geral)
     tabela["IQR_GERAL"] = tabela["VARIAVEL"].map(iqr_geral)
     tabela["D_CJ"] = (tabela["MEDIANA_CLUSTER"] - tabela["MEDIANA_GERAL"]) / tabela["IQR_GERAL"]
 
+    # Ordena por |d_cj| dentro de cada cluster: as variáveis mais discriminantes (maior desvio,
+    # positivo ou negativo) ficam no topo
     tabela["_D_CJ_ABS"] = tabela["D_CJ"].abs()
     tabela = tabela.sort_values(["CLUSTER", "_D_CJ_ABS"], ascending=[True, False], na_position="last")
     tabela = tabela.drop(columns="_D_CJ_ABS").reset_index(drop=True)

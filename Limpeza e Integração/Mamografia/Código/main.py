@@ -38,10 +38,12 @@ ANOS_PADRAO = list(range(date.today().year - 1, ANO_INICIAL_SERIE, -1))
 # Funções auxiliares
 
 def garantir_pasta(caminho: str) -> None:
+    """Cria a pasta (e pastas-pai) se ainda não existir."""
     os.makedirs(caminho, exist_ok=True)
 
 
 def criar_driver(pasta_downloads: str, sem_interface: bool) -> webdriver.Chrome:
+    """Abre o Chrome controlado pelo Selenium, já configurado para salvar downloads direto em `pasta_downloads`."""
     opcoes = webdriver.ChromeOptions()
     preferencias = {
         "download.default_directory": os.path.abspath(pasta_downloads),
@@ -71,6 +73,7 @@ def criar_driver(pasta_downloads: str, sem_interface: bool) -> webdriver.Chrome:
 
 
 def selecionar_opcao_por_texto(driver: webdriver.Chrome, elemento_select, texto: str) -> None:
+    """Seleciona, num <select> do TABNET, a opção cujo texto exibido é exatamente `texto` (via JS, pois o site não usa IDs estáveis nas opções)."""
     encontrou = driver.execute_script(
         """
         const sel = arguments[0];
@@ -106,6 +109,7 @@ def selecionar_opcao_por_texto(driver: webdriver.Chrome, elemento_select, texto:
 
 
 def clicar_com_seguranca(driver: webdriver.Chrome, elemento) -> None:
+    """Clica no elemento; se o clique normal falhar (ex.: elemento fora da área visível), força via JS."""
     try:
         elemento.click()
     except Exception:
@@ -113,6 +117,7 @@ def clicar_com_seguranca(driver: webdriver.Chrome, elemento) -> None:
 
 
 def rolar_ate_o_fim(driver: webdriver.Chrome, passos: int = 10, pausa_s: float = 0.5) -> None:
+    """Rola a página gradualmente até o fim, para forçar o carregamento de conteúdo que só aparece sob rolagem."""
     for passo in range(1, passos + 1):
         driver.execute_script(
             f"window.scrollTo(0, document.body.scrollHeight * {passo / passos});"
@@ -123,6 +128,7 @@ def rolar_ate_o_fim(driver: webdriver.Chrome, passos: int = 10, pausa_s: float =
 
 
 def mudar_para_janela_de_resultado(driver: webdriver.Chrome, janela_original: str, tempo_limite_s: int = 60) -> bool:
+    """Espera a janela de resultado da consulta abrir (o TABNET abre uma nova aba) e muda o foco do driver para ela."""
     limite = time.time() + tempo_limite_s
     while time.time() < limite:
         novas_janelas = [h for h in driver.window_handles if h != janela_original]
@@ -135,6 +141,7 @@ def mudar_para_janela_de_resultado(driver: webdriver.Chrome, janela_original: st
 
 
 def encontrar_link_csv(driver: webdriver.Chrome) -> str:
+    """Procura, na página de resultado, o link 'Salva como CSV', tentando várias estratégias de seletor em ordem até achar uma que funcione."""
     estrategias = [
         (By.XPATH, "//a[normalize-space(text())='Salva como CSV']"),
         (By.XPATH, "//a[contains(text(),'CSV') and contains(@href,'.csv')]"),
@@ -174,6 +181,7 @@ def encontrar_link_csv(driver: webdriver.Chrome) -> str:
 
 
 def baixar_com_requests(driver: webdriver.Chrome, url: str, caminho_destino: str) -> None:
+    """Baixa o CSV via `requests` (em vez de deixar o navegador baixar), reaproveitando os cookies de sessão do Selenium."""
     garantir_pasta(os.path.dirname(caminho_destino))
 
     sessao = requests.Session()
@@ -199,6 +207,7 @@ def baixar_com_requests(driver: webdriver.Chrome, url: str, caminho_destino: str
 
 
 def mover_sobrescrevendo(origem: str, destino: str) -> None:
+    """Move o arquivo de `origem` para `destino`, substituindo o destino se ele já existir."""
     garantir_pasta(os.path.dirname(destino))
     if os.path.exists(destino):
         os.remove(destino)
@@ -212,6 +221,7 @@ def baixar_csv_por_ano(
     pasta_saida: str,
     espera_s: int = 60,
 ) -> str:
+    """Executa a consulta do TABNET para um único `ano` (linha=município, coluna=faixa etária, conteúdo=exames) e salva o CSV em `pasta_saida`."""
     driver.get(URL)
     espera = WebDriverWait(driver, espera_s)
 
@@ -280,6 +290,7 @@ def definir_anos(
     ano_inicial: Optional[int],
     ano_final: Optional[int],
 ) -> List[int]:
+    """Decide a lista de anos a baixar: usa `--years` se informado, senão o intervalo `--start-year`/`--end-year`, senão o padrão (últimos anos disponíveis)."""
     if anos_informados:
         return [int(ano) for ano in anos_informados]
     if ano_inicial is None and ano_final is None:
@@ -293,6 +304,7 @@ def definir_anos(
 # Execução principal
 
 def main() -> int:
+    """Lê os argumentos de linha de comando, abre o navegador e baixa um CSV de mamografia por ano, continuando para o próximo ano mesmo se um falhar."""
     analisador = argparse.ArgumentParser(
         description="Baixa CSV do TABNET (SISCAN Mamografia) por ano."
     )

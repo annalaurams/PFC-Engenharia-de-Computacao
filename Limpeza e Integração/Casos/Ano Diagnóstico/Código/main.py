@@ -37,6 +37,7 @@ ANOS = [
 # Funções auxiliares
 
 def criar_driver() -> webdriver.Chrome:
+    """Abre o Chrome controlado pelo Selenium, configurado para salvar downloads direto em PASTA_DOWNLOADS."""
     preferencias = {
         "download.default_directory": str(PASTA_DOWNLOADS),
         "download.prompt_for_download": False,
@@ -56,6 +57,7 @@ def criar_driver() -> webdriver.Chrome:
 
 
 def esperar_nova_aba(driver, abas_conhecidas: set, tempo_limite: int = 15) -> str:
+    """Espera abrir uma aba/janela nova (diferente das já conhecidas) e devolve o seu handle."""
     limite = time.time() + tempo_limite
     while time.time() < limite:
         novas = set(driver.window_handles) - abas_conhecidas
@@ -66,15 +68,18 @@ def esperar_nova_aba(driver, abas_conhecidas: set, tempo_limite: int = 15) -> st
 
 
 def clicar_via_js(driver, elemento):
+    """Clica no elemento via JavaScript (mais confiável que o clique normal do Selenium nesse site)."""
     driver.execute_script("arguments[0].click();", elemento)
 
 
 def remover_arquivos_tabulador_antigos():
+    """Remove CSVs de downloads anteriores, para não confundir com o próximo arquivo baixado."""
     for arquivo in PASTA_DOWNLOADS.glob("tabulador_*.csv"):
         arquivo.unlink()
 
 
 def esperar_download(tempo_limite: int = 90) -> Path:
+    """Espera o navegador terminar de baixar o CSV do tabulador (ignora arquivos ainda em .crdownload) e devolve o mais recente."""
     limite = time.time() + tempo_limite
     while time.time() < limite:
         candidatos = [
@@ -88,6 +93,7 @@ def esperar_download(tempo_limite: int = 90) -> Path:
 
 
 def definir_select_por_id_js(driver, id_select: str, valor: str):
+    """Define o valor de um <select> pelo `id`, disparando o evento `change` (necessário para o JS do site reagir)."""
     driver.execute_script("""
         var sel = document.getElementById(arguments[0]);
         if (!sel) throw new Error("Select id=" + arguments[0] + " não encontrado");
@@ -98,6 +104,7 @@ def definir_select_por_id_js(driver, id_select: str, valor: str):
 
 
 def definir_select_por_rotulo_js(driver, rotulo: str, valor: str) -> str:
+    """Define o valor de um <select> localizado pelo rótulo (texto da célula da tabela ao lado), já que o formulário não dá id estável a todos os campos. Devolve uma string de status para diagnóstico."""
     resultado = driver.execute_script("""
         var label = arguments[0];
         var value = arguments[1];
@@ -139,6 +146,7 @@ def definir_select_por_rotulo_js(driver, rotulo: str, valor: str) -> str:
 # Navegação até o formulário
 
 def navegar_ate_formulario(driver):
+    """Percorre as telas iniciais do RHC-INCA (seleção de base, confirmação) até chegar no formulário de consulta, trocando de aba a cada etapa."""
     driver.get(URL_BASE)
     time.sleep(2)
 
@@ -162,10 +170,13 @@ def navegar_ate_formulario(driver):
 # Preenchimento do formulário
 
 def preencher_formulario(driver, ano: int):
+    """Preenche no formulário do tabulador: layout linha/coluna, ano, sexo, UF de procedência, procedência em branco
+    (todas), ano de diagnóstico em branco (todas, pois é a variável de interesse na coluna) e localização primária C50 (mama)."""
     WebDriverWait(driver, 20).until(EC.presence_of_element_located((By.ID, "linha")))
 
     definir_select_por_id_js(driver, "linha", LINHA_ID)
     definir_select_por_id_js(driver, "coluna", COLUNA_ID)
+    # Seleciona o ano da consulta na lista de períodos disponíveis
     driver.execute_script("""
         var sel = document.getElementById('periodo');
         for (var i = 0; i < sel.options.length; i++) sel.options[i].selected = false;
@@ -183,6 +194,7 @@ def preencher_formulario(driver, ano: int):
 
     resultado = definir_select_por_rotulo_js(driver, "UF de procedência", UF_PROCEDENCIA)
     if "NAO" in resultado:
+        # Se o select não foi localizado pelo rótulo, tenta achar diretamente a opção com esse valor em qualquer select da página
         driver.execute_script("""
             for (var s of document.querySelectorAll('select')) {
                 for (var o of s.options) {
@@ -204,6 +216,8 @@ def preencher_formulario(driver, ano: int):
     resultado = definir_select_por_rotulo_js(driver, "Localização primária", LOCALIZACAO_PRIMARIA)
 
     if "OPCAO_NAO_ENCONTRADA" in resultado or "NAO" in resultado:
+        # A lista de opções de localização primária pode carregar com atraso (depende da UF escolhida) --
+        # espera um pouco e tenta de novo em qualquer select da página.
         time.sleep(4)
         driver.execute_script("""
             for (var s of document.querySelectorAll('select')) {
@@ -223,6 +237,7 @@ def preencher_formulario(driver, ano: int):
 # Consulta, download e retorno ao formulário
 
 def clicar_mostra(driver):
+    """Clica em 'Mostra' para executar a consulta e espera o link de download do CSV aparecer no resultado."""
     botao = WebDriverWait(driver, 15).until(
         EC.element_to_be_clickable((By.XPATH, "//input[@value='Mostra']"))
     )
@@ -234,6 +249,7 @@ def clicar_mostra(driver):
 
 
 def baixar_csv(driver, ano: int) -> Path:
+    """Baixa o CSV do resultado e o move/renomeia para PASTA_SAIDA como `RacaCor-{ano}.csv`."""
     remover_arquivos_tabulador_antigos()
     link = driver.find_element(By.XPATH, "//a[contains(@href, 'downloadTabulador')]")
     clicar_via_js(driver, link)
@@ -244,6 +260,7 @@ def baixar_csv(driver, ano: int) -> Path:
 
 
 def voltar_formulario(driver):
+    """Volta da tela de resultado para o formulário de consulta, para preencher o próximo ano."""
     voltar = WebDriverWait(driver, 15).until(
         EC.element_to_be_clickable((By.XPATH, "//a[contains(@href, 'enviarDados')]"))
     )
@@ -254,6 +271,8 @@ def voltar_formulario(driver):
 # Execução principal
 
 def main():
+    """Navega até o formulário uma vez e, para cada ano em ANOS, preenche, consulta, baixa o CSV e volta ao formulário,
+    registrando ano a ano quais baixaram com sucesso e quais falharam (sem interromper o laço num erro isolado)."""
     driver = criar_driver()
     anos_baixados = []
     anos_com_erro = []

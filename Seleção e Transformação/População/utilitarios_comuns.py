@@ -31,6 +31,7 @@ CAMINHO_POPULACAO = PASTA_POPULACAO / "Interpolação e Extrapolação" / "popul
 
 
 def registrar_log(mensagem):
+    """Imprime uma mensagem de log padronizada, prefixada com "[LOG]"."""
     print(f"[LOG] {mensagem}")
 
 
@@ -113,8 +114,10 @@ def filtrar_populacao_valida_por_municipio(tabela_populacao, colunas_de_populaca
     return tabela_filtrada
 
 
-# Especificações de cada variável: entrada, período e arquivo de saída da taxa
-
+# Especificações de cada variável: entrada, período e arquivo de saída da taxa.
+# Cada entrada descreve de onde ler os dados brutos (CAMINHO_ENTRADA), o
+# intervalo de anos a processar (ANO_INICIAL/ANO_FINAL) e o nome do CSV de
+# taxa (por 100k habitantes) a gerar para essa variável.
 ESPECIFICACOES_VARIAVEIS = {
     "Casos": {
         "CAMINHO_ENTRADA": PASTA_SELECAO_TRANSFORMACAO / "Casos" / "tabela_casos_por_ano_de_diagnóstico.csv",

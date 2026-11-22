@@ -78,4 +78,5 @@ ESPACAMENTO_VERTICAL_PAINEIS_POPULACAO = 0.16
 
 
 def tamanho_fonte(tamanho_base):
+    """Aplica o multiplicador global de fonte a um tamanho base, para escalar todos os gráficos de uma vez."""
     return tamanho_base * MULTIPLICADOR_FONTE_GLOBAL

@@ -139,6 +139,9 @@ def grafico_heatmap_regional_ano(visao_agregada_regional_ano):
             return rotulo_do_cluster(valor)
         return "Sem dado"
 
+    # Plotly Heatmap só aceita colorscale contínua -- aqui ela é construída em "degraus":
+    # cada cluster (e "sem dado") ocupa uma faixa de largura igual e com cor sólida (sem gradiente),
+    # simulando uma paleta categórica
     z = tabela.map(posicao_na_escala).to_numpy()
     texto = tabela.map(texto_da_celula).to_numpy()
     cores = [paleta[rotulo] for rotulo in rotulos_presentes] + [NO_DATA_COLOR]
@@ -193,6 +196,8 @@ def grafico_mapa_clusters(geojson_regionais, geometria_regionais, tabela_cluster
     rotulos_presentes = sorted(int(c) for c in tabela["CLUSTER"].dropna().unique())
     paleta = CLUSTER_COLORS
 
+    # Choropleth não tem cor categórica nativa: uma trace por cluster, cada uma com uma
+    # colorscale de cor única -- assim cada cluster vira um item distinto na legenda
     figura = go.Figure()
     for cluster in rotulos_presentes:
         mascara = (tabela["CLUSTER"] == cluster).to_numpy()

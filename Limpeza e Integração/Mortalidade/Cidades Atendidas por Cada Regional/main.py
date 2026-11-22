@@ -48,11 +48,13 @@ FAIXA_ETARIA_FINAL = "999"  # sem limite superior (todas as idades)
 # Utilidades
 
 def log_status(ano, mensagem, tipo="INFO"):
+    """Imprime uma linha de log colorida no terminal, identificando o ano e o tipo de evento (INFO/OK/ERRO/AVISO)."""
     cores = {"INFO": "34", "OK": "32", "ERRO": "31", "AVISO": "33"}
     print(f"\033[{cores.get(tipo, '37')}m[{tipo}] Ano {ano} | {mensagem}\033[0m")
 
 
 def iniciar_driver():
+    """Abre o Chrome controlado pelo Selenium, configurado para salvar downloads em PASTA_DOWNLOADS e permanecer aberto (`detach`) após o script terminar."""
     opcoes = webdriver.ChromeOptions()
     preferencias = {
         "download.default_directory": PASTA_DOWNLOADS,
@@ -68,6 +70,7 @@ def iniciar_driver():
 
 
 def driver_esta_ativo(driver):
+    """Verifica se a sessão do navegador ainda responde (usado para detectar queda de conexão e decidir se precisa reiniciar o driver)."""
     try:
         _ = driver.current_url
         return True
@@ -76,6 +79,7 @@ def driver_esta_ativo(driver):
 
 
 def limpar_downloads_temp():
+    """Remove CSVs de execuções anteriores da pasta de downloads, para não confundir com o próximo arquivo baixado."""
     for arquivo in glob.glob(os.path.join(PASTA_DOWNLOADS, "ModeloTabulador_*.csv")):
         try:
             os.remove(arquivo)
@@ -84,6 +88,7 @@ def limpar_downloads_temp():
 
 
 def selecionar_por_nome(driver, nome, valor_ou_texto, por="value", tempo_limite=15):
+    """Seleciona uma opção num <select> localizado pelo atributo `name`, por valor ou por texto visível."""
     espera = WebDriverWait(driver, tempo_limite)
     elemento = espera.until(
         EC.presence_of_element_located((By.CSS_SELECTOR, f'select[name="{nome}"]'))
@@ -96,6 +101,7 @@ def selecionar_por_nome(driver, nome, valor_ou_texto, por="value", tempo_limite=
 
 
 def selecionar_por_id(driver, id_elemento, valor_ou_texto, por="value", tempo_limite=15):
+    """Seleciona uma opção num <select> localizado pelo `id`, por valor ou por texto visível."""
     espera = WebDriverWait(driver, tempo_limite)
     elemento = espera.until(
         EC.presence_of_element_located((By.ID, id_elemento))
@@ -108,6 +114,7 @@ def selecionar_por_id(driver, id_elemento, valor_ou_texto, por="value", tempo_li
 
 
 def aguardar_ajax(driver, tempo_limite=10):
+    """Espera a página terminar de carregar e o indicador de loading (AJAX do site) desaparecer."""
     try:
         WebDriverWait(driver, tempo_limite).until(
             lambda d: d.execute_script(
@@ -125,6 +132,7 @@ def aguardar_ajax(driver, tempo_limite=10):
 
 
 def aguardar_resultado_ou_erro(driver, tempo_limite=40):
+    """Espera até que o painel de resultado seja preenchido ou apareça a mensagem de campos obrigatórios vazios."""
     def condicao(d):
         try:
             painel = d.find_element(By.ID, "panelResultado")
@@ -147,6 +155,7 @@ def aguardar_resultado_ou_erro(driver, tempo_limite=40):
 
 
 def verificar_erro_campos_obrigatorios(driver):
+    """Detecta se o site mostrou o aviso de erro de validação (campo obrigatório não preenchido)."""
     try:
         elemento = driver.find_element(By.ID, "formModeloTabulador:msgCamposVazios")
         texto = elemento.text
@@ -160,6 +169,7 @@ def verificar_erro_campos_obrigatorios(driver):
 
 
 def verificar_sem_resultado(driver):
+    """Detecta se o site informou que a consulta não retornou dados para o ano/filtro atual."""
     try:
         elemento = driver.find_element(By.ID, "panelResultado")
         texto = elemento.text
@@ -171,10 +181,13 @@ def verificar_sem_resultado(driver):
 
 
 def aplicar_filtros(driver, espera):
+    """Preenche, na página do tabulador, todos os filtros fixos da consulta (sexo, câncer de mama, localidade, município, layout linha/coluna, faixa etária). Chamada uma vez no início e sempre que a sessão precisa ser reconfigurada após um erro."""
     try:
+        # Sexo feminino
         selecionar_por_id(driver, "formModeloTabulador:comboSexo", SEXO_ID)
         time.sleep(2)
 
+        # Localização primária do tumor: C50 - MAMA
         espera.until(
             EC.element_to_be_clickable((By.XPATH, f"//li[contains(text(),'{LOCALIZACAO_PRIMARIA_TEXTO}')]"))
         ).click()
@@ -183,6 +196,7 @@ def aplicar_filtros(driver, espera):
         driver.find_element(By.CLASS_NAME, "ui-picklist-button-add").click()
         time.sleep(2)
 
+        # Nível de localidade = Município, dentro da região/estado/regional de saúde configurados
         selecionar_por_id(driver, "formModeloTabulador:nivelLocalidade", NIVEL_LOCALIDADE_ID)
         time.sleep(3)
 
@@ -195,6 +209,7 @@ def aplicar_filtros(driver, espera):
         selecionar_por_id(driver, "formModeloTabulador:regionalSaude", REGIONAL_SAUDE, por="text")
         time.sleep(4)
 
+        # Busca o município exato (nome + UF) na lista de localidades da regional selecionada
         espera.until(EC.presence_of_element_located((By.ID, "formModeloTabulador:localidades")))
         select_municipio = Select(driver.find_element(By.ID, "formModeloTabulador:localidades"))
 
@@ -214,6 +229,7 @@ def aplicar_filtros(driver, espera):
         driver.find_element(By.ID, "formModeloTabulador:add").click()
         time.sleep(3)
 
+        # Layout do tabulador: linha = Ano do óbito, coluna = Município
         selecionar_por_nome(driver, "formModeloTabulador:j_idt155", TIPO_LINHA_ID)
         time.sleep(1)
         aguardar_ajax(driver)
@@ -223,6 +239,7 @@ def aplicar_filtros(driver, espera):
         aguardar_ajax(driver, tempo_limite=15)
         time.sleep(3)
 
+        # Faixa etária sem limite (todas as idades)
         try:
             selecionar_por_id(driver, "formModeloTabulador:idadeFaixaIni", FAIXA_ETARIA_INICIAL)
         except Exception:
@@ -247,6 +264,7 @@ def aplicar_filtros(driver, espera):
 # Processamento e download
 
 def clicar_ok_com_retry(driver, espera, max_tentativas=5):
+    """Clica no botão 'OK' da consulta, tentando várias estratégias de seletor (o site muda o markup entre carregamentos) e repetindo em caso de falha."""
     estrategias = [
         lambda: driver.find_element(
             By.XPATH,
@@ -289,6 +307,7 @@ def clicar_ok_com_retry(driver, espera, max_tentativas=5):
 
 
 def clicar_gerar_csv_com_retry(driver, espera, max_tentativas=5):
+    """Clica no botão 'Gerar CSV' do resultado, tentando várias estratégias de seletor e repetindo em caso de falha."""
     estrategias = [
         lambda: driver.find_element(By.ID, "formModeloTabuladorLinks:j_idt424"),
         lambda: driver.find_element(
@@ -330,6 +349,8 @@ def clicar_gerar_csv_com_retry(driver, espera, max_tentativas=5):
 # Execução principal
 
 def executar():
+    """Laço principal: aplica os filtros uma vez e, para cada ano em PERIODO, consulta e baixa o CSV de óbitos,
+    reiniciando o driver ou reconfigurando os filtros quando a sessão cai ou a consulta falha repetidamente."""
     driver = iniciar_driver()
     espera = WebDriverWait(driver, 60)
     driver.get(URL)
@@ -400,6 +421,8 @@ def executar():
                 tentativas_erro = 0
                 continue
 
+            # O site às vezes retorna "sem resultado" por lentidão, não por falta real de dados --
+            # por isso a consulta é refeita uma segunda vez antes de aceitar que o ano não tem dados.
             if verificar_sem_resultado(driver):
                 log_status(ano, "Sem dados (1ª verificação). Tentando novamente...", "AVISO")
                 if not clicar_ok_com_retry(driver, espera):

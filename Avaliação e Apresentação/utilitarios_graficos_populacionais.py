@@ -248,9 +248,20 @@ def _altura_rotulos_eixo_x(rotulos_eixo_x, tickangle_eixo_x, tamanho_fonte_tick)
     return abs(largura_rotulo_px * math.sin(angulo_rad)) + abs(tamanho_fonte_tick * math.cos(angulo_rad))
 
 
+def _altura_linha_legenda(tamanho_fonte_legenda):
+    """Altura, em px, de uma linha de legenda horizontal -- escala com o tamanho de fonte da legenda.
+
+    `_ALTURA_LINHA_LEGENDA` foi calibrado para `TAMANHO_FONTE_LEGENDA` (15px); gráficos com fonte de
+    legenda maior (ex.: `TAMANHO_FONTE_LEGENDA_GRAFICO_LINHA`, 27px) precisam de mais altura, senão o
+    texto da legenda é cortado embaixo da figura.
+    """
+    return _ALTURA_LINHA_LEGENDA * tamanho_fonte(tamanho_fonte_legenda) / TAMANHO_FONTE_LEGENDA
+
+
 def _calcular_margem_inferior_e_legenda(rotulos_eixo_x, tickangle_eixo_x, altura, margem_inferior=None,
                                          tamanho_fonte_tick_eixo=TAMANHO_FONTE_TICK_EIXO,
-                                         tamanho_fonte_titulo_eixo=TAMANHO_FONTE_TITULO_EIXO):
+                                         tamanho_fonte_titulo_eixo=TAMANHO_FONTE_TITULO_EIXO,
+                                         tamanho_fonte_legenda=TAMANHO_FONTE_LEGENDA):
     """Calcula a margem inferior e a posição vertical da legenda, abaixo dos rótulos e do título do eixo X."""
     altura_rotulos = _altura_rotulos_eixo_x(
         rotulos_eixo_x, tickangle_eixo_x, tamanho_fonte(tamanho_fonte_tick_eixo)
@@ -261,7 +272,7 @@ def _calcular_margem_inferior_e_legenda(rotulos_eixo_x, tickangle_eixo_x, altura
     if margem_inferior is None:
         margem_inferior = (
             altura_rotulos_e_titulo + _ESPACO_ENTRE_ROTULOS_E_LEGENDA
-            + _ALTURA_LINHA_LEGENDA + _ESPACO_ENTRE_LEGENDA_E_BORDA
+            + _altura_linha_legenda(tamanho_fonte_legenda) + _ESPACO_ENTRE_LEGENDA_E_BORDA
         )
 
     altura_area_grafico = max(altura - _MARGEM_SUPERIOR_PADRAO - margem_inferior, 1)
@@ -360,6 +371,8 @@ def montar_grafico_linha_categorica_absoluto(eixo_x, tabela_pivotada_quantidade,
     mapa_rotulos = _posicoes_e_textos_rotulo(pontos_com_rotulo_por_ano, formato_valor, escala_total)
 
     figura = go.Figure()
+    # Uma trace de linha por categoria; quando `mostrar_valores`, cada ponto recebe seu próprio
+    # texto/posição vindos de `mapa_rotulos` (pontos sem rótulo visível ficam com texto vazio)
     for categoria in ordem_categorias:
         valores = tabela_valores[categoria]
 
@@ -408,6 +421,7 @@ def montar_grafico_linha_categorica_absoluto(eixo_x, tabela_pivotada_quantidade,
     margem_inferior, legenda_y = _calcular_margem_inferior_e_legenda(
         eixo_x, tickangle_eixo_x, altura, margem_inferior,
         tamanho_fonte_tick_eixo=tamanho_fonte_tick_eixo, tamanho_fonte_titulo_eixo=tamanho_fonte_titulo_eixo,
+        tamanho_fonte_legenda=tamanho_fonte_legenda,
     )
 
     eixo_y_config = dict(
@@ -584,6 +598,7 @@ def montar_grafico_linha_populacao_com_destaque_censitario(
     margem_inferior, legenda_y = _calcular_margem_inferior_e_legenda(
         todos_os_anos, tickangle_eixo_x, altura,
         tamanho_fonte_tick_eixo=tamanho_fonte_tick_eixo, tamanho_fonte_titulo_eixo=tamanho_fonte_titulo_eixo,
+        tamanho_fonte_legenda=tamanho_fonte_legenda,
     )
 
     for ano in anos_censitarios_set:
@@ -755,10 +770,12 @@ def montar_paineis_populacao_total_e_por_faixa(
     margem_inferior, legenda_y = _calcular_margem_inferior_e_legenda(
         todos_os_anos, tickangle_eixo_x, altura,
         tamanho_fonte_tick_eixo=tamanho_fonte_tick_eixo, tamanho_fonte_titulo_eixo=tamanho_fonte_titulo_eixo,
+        tamanho_fonte_legenda=tamanho_fonte_legenda,
     )
     altura_area_grafico = max(altura - _MARGEM_SUPERIOR_PADRAO - margem_inferior, 1)
-    legenda2_y = legenda_y - (_ALTURA_LINHA_LEGENDA + 6) / altura_area_grafico
-    margem_inferior += _ALTURA_LINHA_LEGENDA + 6
+    altura_linha_legenda2 = _altura_linha_legenda(tamanho_fonte_legenda) + 6
+    legenda2_y = legenda_y - altura_linha_legenda2 / altura_area_grafico
+    margem_inferior += altura_linha_legenda2
 
     figura.update_layout(
         template="plotly_white", width=largura, height=altura,
@@ -1279,10 +1296,13 @@ def montar_mapa_referencia_regionais(geojson, geometria_regionais, coluna_id_geo
 def _espacar_posicoes(desejadas, espacamento, limite_inferior, limite_superior):
     """Ajusta posições (em ordem decrescente) para manterem ao menos `espacamento` entre vizinhas, dentro dos limites."""
     posicoes = np.minimum(np.asarray(desejadas, dtype=float), limite_superior)
+    # Passada de cima para baixo: empurra cada posição para baixo se estiver muito perto da anterior
     for i in range(1, len(posicoes)):
         posicoes[i] = min(posicoes[i], posicoes[i - 1] - espacamento)
     if len(posicoes):
         posicoes[-1] = max(posicoes[-1], limite_inferior)
+    # Passada de baixo para cima: se o empurrão anterior estourou o limite inferior, reabre espaço
+    # empurrando as posições de volta para cima, mantendo o espaçamento mínimo entre vizinhas
     for i in range(len(posicoes) - 2, -1, -1):
         posicoes[i] = max(posicoes[i], posicoes[i + 1] + espacamento)
     return posicoes
@@ -1297,6 +1317,9 @@ def _segmentos_se_cruzam(a, b, c, d):
 
 def _descruzar_linhas(lons, lats, lon_coluna, lat_coluna, max_iteracoes=200):
     """Reordena os slots dos nomes até que nenhuma linha centroide-nome se cruze."""
+    # `ordem[i]` é o índice do centroide ligado ao slot de nome `i`; trocar dois índices troca a
+    # ligação, sem mover os slots -- repete até estabilizar (ou até `max_iteracoes`) porque desfazer
+    # um cruzamento pode criar outro em outro par.
     ordem = list(range(len(lons)))
     for _ in range(max_iteracoes):
         trocou = False
